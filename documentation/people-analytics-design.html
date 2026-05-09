@@ -1,0 +1,2153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>People Analytics Foundation — Design Document</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fg: #1f2328;
+    --fg-muted: #57606a;
+    --bg: #ffffff;
+    --bg-soft: #f6f8fa;
+    --border: #d0d7de;
+    --border-muted: #eaeef2;
+    --accent: #0969da;
+    --accent-soft: #ddf4ff;
+    --code-bg: #f6f8fa;
+    --table-stripe: #fafbfc;
+    --warn-bg: #fff8c5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fg: #e6edf3;
+      --fg-muted: #8b949e;
+      --bg: #0d1117;
+      --bg-soft: #161b22;
+      --border: #30363d;
+      --border-muted: #21262d;
+      --accent: #58a6ff;
+      --accent-soft: #1f2937;
+      --code-bg: #161b22;
+      --table-stripe: #11151b;
+      --warn-bg: #2d2a1a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .layout {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 56px 32px 96px;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 1.6em 0 0.6em;
+  }
+  h1 { font-size: 2.1rem; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.55rem; border-bottom: 1px solid var(--border-muted); padding-bottom: 0.25em; margin-top: 2em; }
+  h3 { font-size: 1.2rem; }
+  h4 { font-size: 1.05rem; color: var(--fg-muted); }
+  p, ul, ol { margin: 0.7em 0; }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: 0.25em 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  blockquote {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    margin: 1em 0;
+    padding: 0.7em 1.1em;
+    color: var(--fg);
+    border-radius: 0 6px 6px 0;
+  }
+  blockquote p { margin: 0.3em 0; }
+  code {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+    background: var(--code-bg);
+    border: 1px solid var(--border-muted);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-muted);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.85em;
+    line-height: 1.5;
+  }
+  pre code {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font-size: 1em;
+  }
+  table {
+    border-collapse: collapse;
+    margin: 1em 0;
+    width: 100%;
+    font-size: 0.92em;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  @media (min-width: 700px) {
+    table { display: table; white-space: normal; }
+  }
+  th, td {
+    border: 1px solid var(--border-muted);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--bg-soft);
+    font-weight: 600;
+  }
+  tbody tr:nth-child(even) { background: var(--table-stripe); }
+  hr {
+    border: 0;
+    border-top: 1px solid var(--border-muted);
+    margin: 2.5em 0;
+  }
+  .mermaid {
+    background: var(--bg-soft);
+    border: 1px solid var(--border-muted);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 1em 0;
+    text-align: center;
+    overflow-x: auto;
+  }
+  .toc {
+    background: var(--bg-soft);
+    border: 1px solid var(--border-muted);
+    border-radius: 8px;
+    padding: 16px 24px;
+    margin: 1.5em 0 2.5em;
+    font-size: 0.95em;
+  }
+  .toc-title {
+    font-weight: 600;
+    margin: 0 0 0.5em;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    font-size: 0.8em;
+    letter-spacing: 0.05em;
+  }
+  .toc ol { margin: 0; padding-left: 1.4em; }
+  .toc li { margin: 0.2em 0; }
+  .doc-meta {
+    color: var(--fg-muted);
+    font-size: 0.9em;
+    margin-bottom: 1.5em;
+  }
+  /* print */
+  @media print {
+    body { font-size: 11pt; }
+    .layout { max-width: none; padding: 0; }
+    h1, h2 { page-break-after: avoid; }
+    pre, .mermaid, table { page-break-inside: avoid; }
+    a { color: var(--fg); text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<main class="layout">
+<div class="doc-meta">Rendered from <code>people-analytics-design.md</code> · Use your browser's Print → Save as PDF for a portable copy.</div>
+<h1>People Analytics Foundation — Design Document</h1>
+<blockquote>
+<p>A 0-to-1 design for a governed People Analytics data platform. Written for a North-American fintech in the 1,000–5,000 employee range with Canadian regulatory exposure (PIPEDA, Quebec Law 25) and likely cross-border data flows (CCPA, GDPR for EU staff, US EEO reporting). The companion repository implements the design end-to-end.</p>
+</blockquote>
+<p><strong>Audience.</strong> This document targets a senior data/analytics engineering reviewer. It assumes familiarity with dimensional modelling, dbt, Snowflake, Airflow, and HR/recruiting data shapes.</p>
+<p><strong>Non-goals.</strong> This is not an HR operations platform, a compensation administration tool, or a survey collection system. It is the <em>analytical</em> foundation that integrates those systems&#39; data into one governed model.</p>
+<hr>
+<h2>1. Executive Summary</h2>
+<p>This design proposes a concise, implementation-ready People Analytics foundation built around five anchors:</p>
+<ol>
+<li><strong>API-first ingestion</strong> with custom Python extractors against Workday, the chosen ATS (Ashby for the MVP build, Greenhouse supported as a swap-in), and survey/compensation sources in later phases. Managed connectors are not used; the public APIs are mature enough for direct extraction and the resulting code becomes a long-lived asset rather than a vendor dependency.</li>
+<li><strong>Append-only raw landing in Snowflake</strong> with a small, deliberate set of lineage metadata columns on every payload. Raw is immutable; nothing downstream is allowed to mutate it.</li>
+<li><strong>Canonical identity model</strong> built on three keys — <code>person_key</code>, <code>employee_key</code>, <code>employment_episode_key</code> — that survive job changes, rehires, and HRIS migrations. This is the single most consequential modelling decision in the document and is the prerequisite for trustable joiner/mover/leaver analytics.</li>
+<li><strong>dbt-owned transformations</strong> through layered staging, core, marts, and a documented semantic layer. Every metric the business will quote has one definition, in one place, that powers every dashboard and every ad-hoc query.</li>
+<li><strong>Privacy as a design constraint, not a bolt-on.</strong> Restricted schemas, row access policies, masking policies, k-anonymity thresholds for survey data, audit through Snowflake <code>ACCESS_HISTORY</code>, and an explicit GDPR/PIPEDA right-to-erasure pattern are all part of the model from day one.</li>
+</ol>
+<p><strong>The phased roadmap.</strong> Phase 1 delivers HR core: identity, employee modelling, SCD Type 2 profile history, lifecycle events, daily headcount snapshots, and a workforce metrics mart covering active headcount, hires, terminations, attrition, internal mobility, promotions, and span of control. Phase 2 adds recruiting: candidates, applications, requisitions, stage history, offers, hire conversion, and a recruiting metrics mart. Phase 3 adds compensation and surveys behind stricter access controls. A future phase extends the model to workforce planning and forecast comparisons. The smallest credible Phase 1 stops at nine tables and still delivers high-value reporting on day one.</p>
+<p><strong>What is intentionally <code>unspecified</code>.</strong> Tenant-level Workday object coverage and field availability are permission-dependent and should be confirmed during integration review. Survey privacy thresholds default to k≥5 in this document but are ultimately an organisational policy decision. Compensation visibility rules and any payroll/equity source integrations are out of scope for this document and called out explicitly.</p>
+<p><strong>One-sentence summary for a non-technical reader.</strong> <em>API-first ingestion, append-only raw storage, a canonical employee record that survives rehires and system changes, point-in-time-correct workforce reporting, and one shared definition of every metric — delivered in phases.</em></p>
+<hr>
+<h2>2. Why This Design — Tradeoffs Considered</h2>
+<p>A design is only as good as the tradeoffs it makes visible. The following choices are deliberate, not defaults.</p>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Chosen</th>
+<th>Considered and rejected (for this scale)</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Ingestion approach</td>
+<td>Custom Python extractors</td>
+<td>Fivetran / Airbyte managed connectors</td>
+<td>Vendor connectors abstract away exactly the parts of People data we need to control: identity, deletes, late-arriving effective dates, and rate-limited backfill. At 1k–5k employees the daily volume is small; the engineering cost of bespoke extractors is recovered the first time a connector silently changes a column type.</td>
+</tr>
+<tr>
+<td>Warehouse</td>
+<td>Snowflake</td>
+<td>BigQuery, Redshift</td>
+<td>Snowflake&#39;s row access policies, masking policies, dynamic data masking, and <code>ACCESS_HISTORY</code> audit map cleanly onto People data sensitivity rules. The design is portable in principle, but the Snowflake security primitives shorten the privacy implementation by weeks.</td>
+</tr>
+<tr>
+<td>Transformation</td>
+<td>dbt</td>
+<td>Stored procedures, Spark, Dataform</td>
+<td>dbt is the de-facto tool for warehouse-native modelling, and the JD-implied &quot;semantic layer ownership&quot; maps directly onto dbt&#39;s metric/semantic-model artefacts. Stored procedures sacrifice testing and lineage; Spark is over-engineered for the workload.</td>
+</tr>
+<tr>
+<td>Orchestration</td>
+<td>Airflow</td>
+<td>Prefect, Dagster, dbt Cloud schedulers</td>
+<td>Airflow&#39;s DAG model and operational maturity are sufficient and well-known. The orchestration layer is intentionally thin: it runs extractors and <code>dbt build</code>, nothing more. The design would port to Prefect or Dagster with a day of work.</td>
+</tr>
+<tr>
+<td>Semantic layer</td>
+<td>dbt semantic models / MetricFlow</td>
+<td>LookML, Cube, hand-rolled <code>metrics.yml</code></td>
+<td>Keeps the metric definitions in the same repository, version control, and review path as the models they sit on. The BI tool can consume from the warehouse views generated by MetricFlow without needing to re-implement metric logic in LookML.</td>
+</tr>
+<tr>
+<td>Snapshot cadence (HR)</td>
+<td>Nightly full snapshot</td>
+<td>CDC, hourly delta</td>
+<td>At 5k employees, a full HR snapshot is a few megabytes and runs in seconds. CDC adds tenant configuration and replay complexity that pays off only at much larger scales. Documented as a tradeoff to revisit at &gt;50k headcount.</td>
+</tr>
+<tr>
+<td>Identity matching</td>
+<td>Deterministic only in MVP</td>
+<td>Probabilistic / ML matching</td>
+<td>A bad merge is far worse than a missing match in HR data. Probabilistic matching is a future-phase consideration with explicit human review in the loop.</td>
+</tr>
+<tr>
+<td>ATS for MVP</td>
+<td>Ashby</td>
+<td>Greenhouse</td>
+<td>Both are supported in code. Ashby&#39;s <code>syncToken</code> incremental model and signed-webhook pattern are slightly more modern and produce a more interesting reference implementation; the Greenhouse path is documented and trivially swappable.</td>
+</tr>
+</tbody></table>
+<p>The tradeoffs above are revisited in §16 (<em>Where this design doesn&#39;t apply</em>) for explicit failure modes.</p>
+<hr>
+<h2>3. Architecture at a Glance</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Choice</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Sources</td>
+<td>Workday (HRIS), Ashby (ATS, MVP) / Greenhouse (ATS, swappable), survey + compensation sources in later phases</td>
+</tr>
+<tr>
+<td>Extraction</td>
+<td>Direct Python extractors. Workday RaaS as documented fallback. Webhooks for near-real-time events</td>
+</tr>
+<tr>
+<td>Landing</td>
+<td>Append-only <code>RAW_*</code> tables in Snowflake with lineage metadata + full JSON <code>VARIANT</code> payload</td>
+</tr>
+<tr>
+<td>Transformation</td>
+<td>dbt: <code>base</code> → <code>stage</code> → <code>core</code> → <code>marts</code> → <code>semantic</code></td>
+</tr>
+<tr>
+<td>Orchestration</td>
+<td>Airflow DAGs, idempotent and retry-safe, parameterised by <code>data_interval_start</code></td>
+</tr>
+<tr>
+<td>Identity</td>
+<td><code>person_key</code> (canonical) + <code>employee_key</code> (HR record) + <code>employment_episode_key</code> (contiguous stint)</td>
+</tr>
+<tr>
+<td>History</td>
+<td>SCD Type 2 for employee profile + department; SCD Type 1 for current-state lookups; daily headcount snapshots; SCD Type 3 only where two-version history is genuinely needed (rare in HR)</td>
+</tr>
+<tr>
+<td>Time correctness</td>
+<td>Effective-dated SCD2 keyed on <code>effective_date</code>, separate from <code>entry_date</code>; bi-temporal columns on every history table</td>
+</tr>
+<tr>
+<td>Security</td>
+<td>Role-based access; restricted schemas for PII, compensation, raw surveys; row access + masking policies; survey k≥5 thresholding; <code>ACCESS_HISTORY</code> audit</td>
+</tr>
+<tr>
+<td>Observability</td>
+<td>Airflow UI, dbt tests + freshness, Elementary for dbt-native data observability, Snowflake query history</td>
+</tr>
+<tr>
+<td>BI</td>
+<td>Tool-agnostic by default; metric layer is dbt semantic models / MetricFlow so any consumer (Looker, Tableau, Hex, Mode, Power BI) reads the same numbers</td>
+</tr>
+</tbody></table>
+<div class="mermaid">
+flowchart LR
+    subgraph Sources
+        W[Workday HRIS]
+        A[Ashby ATS]
+        G[Greenhouse ATS]
+        S[Survey platform]
+        C[Compensation source]
+    end
+
+    subgraph Extract
+        PX[Python extractors]
+        WH[Webhook receiver]
+    end
+
+    subgraph Snowflake
+        R[RAW append-only]
+        B[BASE typed]
+        ST[STAGE deduped latest]
+        CO[CORE identity + dims + facts]
+        M[MARTS workforce + recruiting]
+        SE[SEMANTIC metric definitions]
+    end
+
+    subgraph Consumers
+        BI[BI dashboards]
+        AH[Ad-hoc analysis]
+        EX[Exports / activations]
+    end
+
+    W --> PX
+    A --> PX
+    G --> PX
+    S --> PX
+    C --> PX
+    A --> WH
+    G --> WH
+
+    PX --> R
+    WH --> R
+    R --> B --> ST --> CO --> M --> SE
+    SE --> BI
+    SE --> AH
+    M --> EX
+
+    AF[Airflow DAGs] -.->|schedule| PX
+    AF -.->|invoke| B
+    AF -.->|invoke| M
+</div>
+<hr>
+<h2>4. Scope, Assumptions, and Phased Roadmap</h2>
+<h3>4.1 Assumptions</h3>
+<ul>
+<li><strong>Primary HRIS is Workday</strong>, source of truth for active workforce, organisation, and employment status. Workday&#39;s first-class extraction surface for HCM is RaaS (Reports-as-a-Service) and the SOAP <code>Get_Workers</code> operation; REST coverage of HCM is partial and tenant-dependent. The design defaults to RaaS for full worker extracts and uses REST for incremental/lookup endpoints where they exist.</li>
+<li><strong>Primary ATS is Ashby for the MVP</strong> with Greenhouse fully supported as a swap-in. Both are implemented in code; only one is wired into the production DAG schedule.</li>
+<li><strong>Headcount range 1,000–5,000.</strong> A daily full HR snapshot is operationally trivial at this scale. The design notes where this assumption breaks (§16).</li>
+<li><strong>Workforce includes multiple worker types</strong>: full-time employees, part-time, contractors, contingent workers, and interns. The data model treats <code>employee</code> as one of several <code>worker_type</code> values and <code>is_employee</code> is a derived predicate, not a primary attribute.</li>
+<li><strong>Bi-temporal correctness matters.</strong> Effective-dated changes (a promotion <em>effective</em> last Monday but <em>entered</em> today) must show in history at the right point on the timeline. This is a hard requirement for headcount and attrition correctness.</li>
+<li><strong>Privacy regimes that apply</strong>: Canadian PIPEDA, Quebec Law 25 (formerly Bill 64), CCPA for California-based staff, GDPR for any EU-resident staff, and US EEO-1 reporting requirements where applicable. Specific obligations are owned by Legal/Privacy; the design provides the technical primitives.</li>
+<li><strong>Fuzzy auto-merge of identities is out of scope for the MVP.</strong> Ambiguous matches route to a manual review queue.</li>
+</ul>
+<h3>4.2 Foundational business questions</h3>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Questions the foundation must answer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Core workforce</td>
+<td>How many active workers do we have <em>as of any date</em>, by department, location, level, manager chain, job family, and worker type? How is that changing weekly and monthly?</td>
+</tr>
+<tr>
+<td>Joiners and leavers</td>
+<td>How many hires and terminations occurred in a period? What is voluntary, involuntary, and regrettable attrition? What does attrition look like by tenure cohort and manager tree?</td>
+</tr>
+<tr>
+<td>Internal movement</td>
+<td>Who moved teams, changed managers, changed level, or was promoted? How often? From where to where? What share of senior roles is filled internally?</td>
+</tr>
+<tr>
+<td>Recruiting funnel</td>
+<td>How many candidates entered the funnel? What is the conversion rate at each stage? Where are requisitions ageing?</td>
+</tr>
+<tr>
+<td>Recruiting efficiency</td>
+<td>Time to hire, time in stage, offer acceptance rate, source-of-hire conversion.</td>
+</tr>
+<tr>
+<td>Hiring conversion</td>
+<td>Which ATS hires resolved into HR employees? How quickly? Where are hire handoffs failing or identity links breaking?</td>
+</tr>
+<tr>
+<td>Compensation</td>
+<td>How have salary and bonus values changed over time, by band, level, and organisation? (Phase 3)</td>
+</tr>
+<tr>
+<td>Engagement</td>
+<td>Survey participation and engagement at privacy-safe reporting levels. (Phase 3)</td>
+</tr>
+<tr>
+<td>Planning</td>
+<td>How do actual headcount and hiring progress compare to approved plan? (Future)</td>
+</tr>
+</tbody></table>
+<h3>4.3 Phased roadmap</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Scope</th>
+<th>Key deliverables</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Core HR</td>
+<td>Workday ingestion, identity registry, workforce dimensions, employee lifecycle facts, daily headcount snapshots, core workforce metrics mart, semantic definitions for hires/terms/active headcount/attrition</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Recruiting</td>
+<td>Ashby ingestion (Greenhouse swap-in), candidate and application models, requisition and opening models, stage history, offer facts, candidate-to-employee bridge, recruiting metrics mart and semantic layer</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Compensation and surveys</td>
+<td>Compensation change facts, comp band model, restricted survey ingestion, threshold-aggregated engagement marts, expanded privacy controls</td>
+</tr>
+<tr>
+<td>Future</td>
+<td>Workforce planning</td>
+<td>Planned-vs-actual headcount, open roles vs plan, quarterly hiring attainment, scenario and forecast models</td>
+</tr>
+</tbody></table>
+<h3>4.4 Prioritised MVP table list</h3>
+<table>
+<thead>
+<tr>
+<th>Pri</th>
+<th>Phase</th>
+<th>Table</th>
+<th>Grain</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>1</td>
+<td><code>raw_hris_worker</code></td>
+<td>one raw payload per extracted worker</td>
+<td>Immutable landing, replay-safe</td>
+</tr>
+<tr>
+<td>2</td>
+<td>1</td>
+<td><code>dim_date</code></td>
+<td>one row per date</td>
+<td>Date spine for snapshots and time logic</td>
+</tr>
+<tr>
+<td>3</td>
+<td>1</td>
+<td><code>stg_hris_worker_latest</code></td>
+<td>one row per HR worker id (current)</td>
+<td>Typed, deduped employee source</td>
+</tr>
+<tr>
+<td>4</td>
+<td>1</td>
+<td><code>bridge_person_source</code></td>
+<td>one row per source record → person</td>
+<td>Identity registry</td>
+</tr>
+<tr>
+<td>5</td>
+<td>1</td>
+<td><code>dim_person</code></td>
+<td>one row per canonical person</td>
+<td>Shared identity anchor</td>
+</tr>
+<tr>
+<td>6</td>
+<td>1</td>
+<td><code>dim_employee</code></td>
+<td>one row per warehouse employee record</td>
+<td>HR employee reference</td>
+</tr>
+<tr>
+<td>7</td>
+<td>1</td>
+<td><code>dim_employee_profile_scd</code></td>
+<td>one row per employee profile version (effective-dated SCD2)</td>
+<td>Profile history</td>
+</tr>
+<tr>
+<td>8</td>
+<td>1</td>
+<td><code>dim_department_scd</code></td>
+<td>one row per department version (SCD2)</td>
+<td>Reorg-safe history</td>
+</tr>
+<tr>
+<td>9</td>
+<td>1</td>
+<td><code>fact_employment_event</code></td>
+<td>one row per lifecycle event</td>
+<td>Hires, terms, transfers, promotions, rehires</td>
+</tr>
+<tr>
+<td>10</td>
+<td>1</td>
+<td><code>fact_headcount_snapshot_daily</code></td>
+<td>one row per active worker per day</td>
+<td>Historical workforce state</td>
+</tr>
+<tr>
+<td>11</td>
+<td>1</td>
+<td><code>mart_workforce_metrics_daily</code></td>
+<td>one row per date × reporting slice</td>
+<td>Governed workforce metrics</td>
+</tr>
+<tr>
+<td>12</td>
+<td>2</td>
+<td><code>stg_ats_candidate_latest</code></td>
+<td>one row per candidate id</td>
+<td>Candidate master</td>
+</tr>
+<tr>
+<td>13</td>
+<td>2</td>
+<td><code>fact_application</code></td>
+<td>one row per application</td>
+<td>Funnel base</td>
+</tr>
+<tr>
+<td>14</td>
+<td>2</td>
+<td><code>fact_application_stage_history</code></td>
+<td>one row per application × stage interval</td>
+<td>Time in stage / conversion</td>
+</tr>
+<tr>
+<td>15</td>
+<td>2</td>
+<td><code>fact_offer</code></td>
+<td>one row per offer or offer version</td>
+<td>Offer analytics</td>
+</tr>
+<tr>
+<td>16</td>
+<td>2</td>
+<td><code>bridge_candidate_employee</code></td>
+<td>one row per resolved candidate→employee link</td>
+<td>Hire conversion</td>
+</tr>
+<tr>
+<td>17</td>
+<td>2</td>
+<td><code>mart_recruiting_metrics_daily</code></td>
+<td>one row per date × requisition or source slice</td>
+<td>Recruiting metrics</td>
+</tr>
+<tr>
+<td>18</td>
+<td>3</td>
+<td><code>fact_compensation_change</code></td>
+<td>one row per comp event</td>
+<td>Comp movement (restricted)</td>
+</tr>
+<tr>
+<td>19</td>
+<td>3</td>
+<td><code>fact_survey_response_restricted</code></td>
+<td>one row per response (restricted)</td>
+<td>Raw survey store</td>
+</tr>
+<tr>
+<td>20</td>
+<td>3</td>
+<td><code>mart_engagement_agg</code></td>
+<td>one row per approved slice above k-threshold</td>
+<td>Privacy-safe engagement reporting</td>
+</tr>
+</tbody></table>
+<p>The smallest useful Phase 1 stops at table 11 and still answers every question in §4.2&#39;s first three rows.</p>
+<hr>
+<h2>5. Source Systems and API-First Ingestion</h2>
+<h3>5.1 Source-system summary</h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Public access pattern</th>
+<th>MVP recommendation</th>
+<th>Representative entities</th>
+<th>Field inventory status</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Workday HRIS</td>
+<td>SOAP (<code>Get_Workers</code>), REST (partial HCM coverage), and RaaS custom reports exposed as JSON web services</td>
+<td>Use a Workday RaaS report on the <em>Workers for HCM Reporting</em> data source for the nightly full worker extract; supplement with REST endpoints where they exist for organisation, location, and job catalogue</td>
+<td>Worker, Position, Job, Organization, Location, Compensation, Time Off</td>
+<td><strong>Unspecified</strong> until tenant access and security review</td>
+</tr>
+<tr>
+<td>Ashby ATS</td>
+<td>RPC-style POST endpoints over HTTP Basic auth. List endpoints support <code>nextCursor</code> pagination and <code>syncToken</code> incremental sync. Signed webhooks via <code>Ashby-Signature</code> header with stable <code>webhookActionId</code> for dedupe</td>
+<td>Use list/info endpoints for base extraction and signed webhooks for events</td>
+<td><code>application.list</code>, <code>application.info</code>, <code>application.listHistory</code>, <code>job.list</code>, <code>opening.list</code>, <code>jobPosting.list</code>; webhooks: <code>applicationSubmit</code>, <code>applicationUpdate</code>, <code>jobPostingUpdate</code>, offer events</td>
+<td>Representative, not exhaustive</td>
+</tr>
+<tr>
+<td>Greenhouse ATS (swap-in)</td>
+<td>Harvest REST API. Authentication is <strong>HTTP Basic with an API key as the username and an empty password</strong> (not OAuth). Webhooks signed with an HMAC-SHA256 over the body using a configured secret; <code>Greenhouse-Event-ID</code> header for dedupe</td>
+<td>Use Harvest endpoints for base extraction and webhooks for events</td>
+<td><code>/v1/candidates</code>, <code>/v1/applications</code> (<code>created_after</code>, <code>last_activity_after</code>), <code>/v1/jobs</code>, <code>/v1/offers</code> (<code>updated_after</code>, <code>resolved_after</code>, <code>sent_after</code>, <code>starts_after</code>), <code>/v1/job_stages</code></td>
+<td>Representative, not exhaustive</td>
+</tr>
+</tbody></table>
+<h3>5.2 Raw landing pattern</h3>
+<p>Python extractors write JSON payloads plus ingestion metadata into Snowflake-managed raw tables. For batch loads the cleanest pattern is to stage files in a Snowflake internal stage and <code>COPY INTO</code> append-only raw tables; for streaming/webhook payloads the extractor inserts directly via the Snowflake Python connector with explicit batching and retries.</p>
+<p>A minimal raw schema is enough for the MVP. The metadata is deliberately small but sufficient for replay, audit, and debugging.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>_ingested_at_utc</code></td>
+<td>Load timestamp for lineage and freshness</td>
+</tr>
+<tr>
+<td><code>_source_system</code></td>
+<td><code>hris_workday</code>, <code>ats_ashby</code>, <code>ats_greenhouse</code>, <code>survey_*</code>, <code>comp_*</code>, <code>webhook_*</code></td>
+</tr>
+<tr>
+<td><code>_source_object</code></td>
+<td><code>worker</code>, <code>application</code>, <code>offer</code>, <code>opening</code>, etc.</td>
+</tr>
+<tr>
+<td><code>_run_id</code></td>
+<td>Airflow run id for tracing and replay</td>
+</tr>
+<tr>
+<td><code>_extract_mode</code></td>
+<td><code>full</code>, <code>incremental</code>, <code>event</code></td>
+</tr>
+<tr>
+<td><code>_source_record_id</code></td>
+<td>Stable vendor primary key when exposed</td>
+</tr>
+<tr>
+<td><code>_source_updated_at</code></td>
+<td>Vendor-side update timestamp</td>
+</tr>
+<tr>
+<td><code>_effective_date</code></td>
+<td>Effective date of the change (Workday-style sources only)</td>
+</tr>
+<tr>
+<td><code>_watermark_or_cursor</code></td>
+<td>Delta boundary, cursor, or <code>syncToken</code> used for the request</td>
+</tr>
+<tr>
+<td><code>_is_deleted</code></td>
+<td>Soft-delete indicator from source</td>
+</tr>
+<tr>
+<td><code>_payload_hash</code></td>
+<td>SHA-256 over the canonical JSON; dedupe + replay protection</td>
+</tr>
+<tr>
+<td><code>raw_payload</code></td>
+<td>Full JSON stored as <code>VARIANT</code></td>
+</tr>
+</tbody></table>
+<h3>5.3 Full / incremental / event extraction</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Concrete example</th>
+<th>Cadence at 1k–5k headcount</th>
+<th>When it makes sense</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Full snapshot</td>
+<td>Workday RaaS worker extract</td>
+<td>Nightly</td>
+<td>First-best HR strategy when reliable change tracking is unavailable or tenant-specific</td>
+</tr>
+<tr>
+<td>Incremental</td>
+<td>Ashby <code>application.list</code> with <code>syncToken</code>; Greenhouse applications with <code>last_activity_after</code></td>
+<td>Every 1–4h</td>
+<td>Best for ATS tables that change often and expose clear delta fields</td>
+</tr>
+<tr>
+<td>Event</td>
+<td>Ashby signed webhooks; Greenhouse signed webhooks</td>
+<td>Continuous</td>
+<td>Best for near-real-time alerts and stage transitions, with a scheduled reconciliation job that catches missed deliveries</td>
+</tr>
+</tbody></table>
+<p>Concrete API call examples:</p>
+<ul>
+<li>Workday RaaS: <code>GET https://services1.{region}.myworkday.com/ccx/service/customreport2/{tenant}/{user}/{report}?format=json</code> (custom report on <em>Workers for HCM Reporting</em>, &quot;Enable as Web service&quot; turned on).</li>
+<li>Greenhouse incremental applications: <code>GET /v1/applications?last_activity_after=&lt;ISO-8601&gt;&amp;per_page=500&amp;page=1</code> with <code>Authorization: Basic &lt;base64(api_key:)&gt;</code>.</li>
+<li>Greenhouse incremental offers: <code>GET /v1/offers?updated_after=&lt;ISO-8601&gt;</code> or <code>&amp;resolved_after=&lt;ISO-8601&gt;</code>.</li>
+<li>Ashby initial full sync: <code>POST /application.list</code> with body <code>{ &quot;limit&quot;: 100 }</code>, follow <code>nextCursor</code> until <code>moreDataAvailable=false</code>, then store <code>syncToken</code>.</li>
+<li>Ashby incremental sync: <code>POST /application.list</code> with body <code>{ &quot;syncToken&quot;: &quot;&lt;prior&gt;&quot;, &quot;limit&quot;: 100 }</code>.</li>
+</ul>
+<h3>5.4 Backfill strategy</h3>
+<p>First-time loads need an explicit plan. The default backfill path:</p>
+<ol>
+<li><strong>HR</strong>: a single Workday RaaS run with no date filter pulls the full current worker population. Historical employment events are reconstructed from worker effective-dated history if exposed, otherwise from a one-time historical RaaS extract per worker.</li>
+<li><strong>ATS</strong>: paginate through the full population once per entity (<code>candidate</code>, <code>application</code>, <code>offer</code>, <code>job</code>), respecting rate limits. Persist the resulting <code>syncToken</code> (Ashby) or <code>last_activity_after</code> watermark (Greenhouse) for incremental from that point forward.</li>
+<li><strong>Webhooks</strong>: backfill is <em>not</em> required — webhooks are forward-only. Reconciliation against scheduled extracts catches anything missed during deployment.</li>
+</ol>
+<p>Backfill runs in a dedicated DAG with conservative concurrency, separate retry policy, and idempotent landing. Re-running the backfill DAG must be safe.</p>
+<hr>
+<h2>6. Canonical Identity Model</h2>
+<p>Identity is the single most consequential modelling decision in this design. Vendor identifiers are not stable across rehires, are not shared across systems, and occasionally change during HRIS migrations. Without a canonical identity layer, every joiner/mover/leaver question is fragile.</p>
+<h3>6.1 Key definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Meaning</th>
+<th>Why it exists</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>person_key</code></td>
+<td>Warehouse-generated canonical identity for the real-world person</td>
+<td>Groups the same individual across HRIS, ATS, survey, and future systems</td>
+</tr>
+<tr>
+<td><code>employee_key</code></td>
+<td>Warehouse-generated identity for a specific HR worker record</td>
+<td>Preserves source lineage when the HR system issues new worker ids</td>
+</tr>
+<tr>
+<td><code>employment_episode_key</code></td>
+<td>Warehouse-generated identity for one contiguous hire-to-term period</td>
+<td>Handles rehires and tenure correctly</td>
+</tr>
+<tr>
+<td><code>candidate_key</code></td>
+<td>Warehouse-generated identity for a specific ATS candidate record</td>
+<td>Keeps ATS identity separate from canonical person identity</td>
+</tr>
+<tr>
+<td><code>application_key</code></td>
+<td>Warehouse-generated identity for a single application</td>
+<td>Supports one-to-many candidate-to-job histories</td>
+</tr>
+<tr>
+<td><code>candidate_employee_bridge_key</code></td>
+<td>Warehouse-generated key for resolved candidate→employee links</td>
+<td>Makes hire conversion auditable</td>
+</tr>
+</tbody></table>
+<p>Key allocation strategy:</p>
+<ul>
+<li>Snowflake <strong>sequences</strong> for identity-bearing dimension keys (<code>person_key</code>, <code>employee_key</code>, <code>employment_episode_key</code>, <code>candidate_key</code>).</li>
+<li>Deterministic <strong>hashed surrogate keys</strong> (<code>dbt_utils.generate_surrogate_key</code>) where composite matching is useful in staging and fact layers — e.g., <code>application_key</code> = hash of (source_system, candidate_id, job_id, applied_at).</li>
+</ul>
+<h3>6.2 Identity resolution process (deterministic only in MVP)</h3>
+<ol>
+<li>If the incoming source record already exists in <code>bridge_person_source</code> (matched on <code>source_system + source_object + source_record_id</code>), reuse the mapped <code>person_key</code>.</li>
+<li>Otherwise, attempt deterministic high-confidence matching, performed in a restricted schema accessible only to the matching service account:<ul>
+<li>exact corporate email match (case-insensitive, normalised);</li>
+<li>exact employee number match where both systems expose it;</li>
+<li>explicit hire linkage from ATS to HRIS where the source provides it (Greenhouse <code>prospect_pool</code> linkage, Ashby <code>application.hireDetails</code>, Workday referral fields).</li>
+</ul>
+</li>
+<li>If a confident match exists, assign the existing <code>person_key</code>.</li>
+<li>If the person is new, allocate a new <code>person_key</code>.</li>
+<li>Always allocate a new <code>employee_key</code> when the HR system issues a new worker id, even if <code>person_key</code> is reused (rehire).</li>
+<li>Allocate a new <code>employment_episode_key</code> whenever a person begins a new contiguous employment stint.</li>
+<li>If matching is ambiguous, <strong>do not auto-merge in MVP</strong>. Insert a row into <code>person_resolution_case</code> and surface in an Airflow alert and a small dbt-doc-rendered review queue. Resolution is a manual decision; the engineer who resolves it leaves an audit trail.</li>
+</ol>
+<h3>6.3 The personal-email problem</h3>
+<p>Most ATS candidates apply with a personal email address; their corporate email is issued at hire. The exact-corporate-email rule above therefore <em>cannot</em> match an ATS candidate to their HRIS record on day one. The model handles this in three layers:</p>
+<ul>
+<li><strong>Pre-hire</strong>: candidate carries a <code>candidate_key</code> and a tentative <code>person_key</code>. The ATS personal email is stored in the restricted identifier table for matching.</li>
+<li><strong>At hire</strong>: the bridge step compares the candidate&#39;s personal email against any personal email captured during HRIS onboarding (Workday personal contact records when available), against employee number alignment, and against an explicit ATS→HRIS hire linkage event when the ATS provides one. If none match, the link is created from the offer record&#39;s <code>accepted_candidate_id</code> paired with the resulting <code>worker_id</code> within a small time window (e.g., 14 days), gated on department/location concordance.</li>
+<li><strong>Post-hire</strong>: the corporate email becomes the durable identifier for future cross-system joins.</li>
+</ul>
+<p>This is documented because in practice this is where most real-world identity errors are introduced. The MVP accepts a small percentage of unresolved hire links and surfaces them, rather than guessing.</p>
+<h3>6.4 Rehire walkthrough</h3>
+<table>
+<thead>
+<tr>
+<th>Incoming source record</th>
+<th>Source id</th>
+<th>Email</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ATS candidate applies</td>
+<td><code>ASH_CAND_550</code></td>
+<td><code>ann.lee@gmail.com</code> (personal)</td>
+<td>New <code>candidate_key=4001</code>, new <code>person_key=501</code> (no prior record)</td>
+</tr>
+<tr>
+<td>Offer accepted, hired into HRIS</td>
+<td><code>WD_WORKER_1001</code></td>
+<td><code>ann.lee@firm.com</code> (corporate, post-onboarding)</td>
+<td>Resolve to existing <code>person_key=501</code> via offer→worker bridge in §6.3; allocate <code>employee_key=8001</code>, <code>employment_episode_key=9001</code></td>
+</tr>
+<tr>
+<td>Termination</td>
+<td><code>WD_WORKER_1001</code> term</td>
+<td>n/a</td>
+<td>Close <code>employment_episode_key=9001</code> with effective_end_date; do not delete <code>employee_key</code></td>
+</tr>
+<tr>
+<td>Rehire 18 months later, new worker id</td>
+<td><code>WD_WORKER_1440</code></td>
+<td><code>ann.lee@firm.com</code></td>
+<td>Reuse <code>person_key=501</code>; allocate <code>employee_key=8044</code>, <code>employment_episode_key=9002</code></td>
+</tr>
+</tbody></table>
+<p>The rehire row is the design&#39;s central correctness check. The person does <strong>not</strong> split into two people. The employee identity and employment episode split, which is exactly what is wanted analytically: tenure resets per episode, but person-level continuity (cohort, demographics, prior performance) is preserved.</p>
+<h3>6.5 Identity correction infrastructure</h3>
+<ul>
+<li><code>bridge_person_source</code> stores the current source-to-person mapping plus <code>match_method</code>, <code>match_confidence</code>, and timestamps.</li>
+<li><code>person_merge_history</code> records survivor/merged-person decisions with timestamps and an audit user. Merges are append-only.</li>
+<li><code>person_resolution_case</code> stores ambiguous matches for manual review.</li>
+<li>Downstream marts always resolve through the survivor <code>person_key</code>. Fact tables are not hard-updated when a merge happens; the bridge resolves them at query time.</li>
+<li>Hard deletions are avoided. Soft-supersession fields <code>is_active</code> and <code>superseded_by_person_key</code> are used; the only exception is GDPR/PIPEDA right-to-erasure, handled in §11.</li>
+</ul>
+<h3>6.6 SCD types in this model</h3>
+<p>The JD specifically calls out SCD types 1, 2, and 3. Each has a place:</p>
+<ul>
+<li><strong>SCD Type 1</strong> (overwrite-on-change) on <code>dim_person</code>, <code>dim_employee</code>, and <code>dim_candidate</code> for <em>current state only</em>. These are kept slim and joined only when the latest values are wanted.</li>
+<li><strong>SCD Type 2</strong> (versioned with <code>valid_from</code>/<code>valid_to</code>) on <code>dim_employee_profile_scd</code> (department, manager, level, job, location, employment status) and <code>dim_department_scd</code>. This is the core history layer.</li>
+<li><strong>SCD Type 3</strong> (single prior-value column) is <em>not</em> used by default in this design. It is mentioned for completeness and would only be used if a specific BI consumer needed an inline &quot;previous_manager&quot; column on a dimension and we judged the SCD2 join cost too high. In a column-store warehouse like Snowflake, that judgement is rare; SCD2 is almost always preferable.</li>
+</ul>
+<h3>6.7 Identity ER diagram</h3>
+<div class="mermaid">
+erDiagram
+    DIM_PERSON ||--o{ BRIDGE_PERSON_SOURCE : maps
+    DIM_PERSON ||--o{ DIM_EMPLOYEE : has
+    DIM_EMPLOYEE ||--o{ DIM_EMPLOYMENT_EPISODE : has
+    DIM_EMPLOYMENT_EPISODE ||--o{ FACT_EMPLOYMENT_EVENT : emits
+    DIM_EMPLOYEE ||--o{ DIM_EMPLOYEE_PROFILE_SCD : versions
+    DIM_EMPLOYEE ||--o{ FACT_HEADCOUNT_SNAPSHOT_DAILY : active_on
+    DIM_PERSON ||--o{ DIM_CANDIDATE : has_candidate_record
+    DIM_CANDIDATE ||--o{ FACT_APPLICATION : submits
+    FACT_APPLICATION ||--o{ FACT_APPLICATION_STAGE_HISTORY : progresses
+    FACT_APPLICATION ||--o{ FACT_OFFER : may_receive
+    DIM_CANDIDATE ||--o{ BRIDGE_CANDIDATE_EMPLOYEE : links
+    DIM_EMPLOYEE ||--o{ BRIDGE_CANDIDATE_EMPLOYEE : links
+    DIM_DEPARTMENT_SCD ||--o{ DIM_EMPLOYEE_PROFILE_SCD : in
+</div>
+<hr>
+<h2>7. Dimensional Model</h2>
+<h3>7.1 Snowflake layers</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Schema</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Raw</td>
+<td><code>RAW</code></td>
+<td>Append-only landing; no transformation</td>
+</tr>
+<tr>
+<td>Base</td>
+<td><code>BASE</code></td>
+<td>Typed flatten from raw VARIANT; one base view per source object</td>
+</tr>
+<tr>
+<td>Stage</td>
+<td><code>STAGING</code></td>
+<td>Renaming, standardisation, dedupe, <code>latest</code> views</td>
+</tr>
+<tr>
+<td>Core</td>
+<td><code>CORE</code></td>
+<td>Canonical identity, dimensions, facts</td>
+</tr>
+<tr>
+<td>Restricted</td>
+<td><code>CORE_RESTRICTED</code>, <code>MARTS_RESTRICTED</code></td>
+<td>PII identifiers, compensation, raw survey responses</td>
+</tr>
+<tr>
+<td>Marts</td>
+<td><code>MARTS</code></td>
+<td>Business-ready reporting models</td>
+</tr>
+<tr>
+<td>Semantic</td>
+<td><code>SEMANTIC</code></td>
+<td>dbt semantic models / metric definitions</td>
+</tr>
+</tbody></table>
+<h3>7.2 Core tables</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Grain</th>
+<th>History</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>dim_date</code></td>
+<td>one row per date</td>
+<td>n/a</td>
+<td>Calendar + fiscal calendar + ISO week, generated 2015–2035</td>
+</tr>
+<tr>
+<td><code>dim_person</code></td>
+<td>one row per canonical person</td>
+<td>SCD1</td>
+<td>Slim; sensitive identifiers in <code>dim_person_pii_restricted</code></td>
+</tr>
+<tr>
+<td><code>bridge_person_source</code></td>
+<td>one row per source record</td>
+<td>audit columns</td>
+<td>Source lineage + match method + confidence</td>
+</tr>
+<tr>
+<td><code>dim_employee</code></td>
+<td>one row per warehouse employee record</td>
+<td>SCD1 current-state</td>
+<td>One per HR worker id</td>
+</tr>
+<tr>
+<td><code>dim_employment_episode</code></td>
+<td>one row per episode</td>
+<td>append-only</td>
+<td><code>employment_episode_key</code>, start/end effective dates, ordinal per person</td>
+</tr>
+<tr>
+<td><code>dim_employee_profile_scd</code></td>
+<td>one row per profile version</td>
+<td>SCD2 (effective-dated)</td>
+<td>Department, manager, job, level, location, employment status, worker_type</td>
+</tr>
+<tr>
+<td><code>dim_department_scd</code></td>
+<td>one row per department version</td>
+<td>SCD2</td>
+<td>Reorg-safe history</td>
+</tr>
+<tr>
+<td><code>dim_job</code></td>
+<td>one row per job code</td>
+<td>SCD1 (or SCD2 if title/level fields change)</td>
+<td>Job catalogue from Workday</td>
+</tr>
+<tr>
+<td><code>dim_location</code></td>
+<td>one row per location</td>
+<td>SCD1</td>
+<td></td>
+</tr>
+<tr>
+<td><code>dim_manager_chain</code></td>
+<td>one row per (employee, ancestor, depth)</td>
+<td>derived per snapshot</td>
+<td>Recursive flattening of manager hierarchy for span analysis</td>
+</tr>
+<tr>
+<td><code>fact_employment_event</code></td>
+<td>one row per lifecycle event</td>
+<td>append-only</td>
+<td>Hire, term, transfer, promotion, rehire, leave start/end</td>
+</tr>
+<tr>
+<td><code>fact_headcount_snapshot_daily</code></td>
+<td>one row per active worker per day</td>
+<td>periodic snapshot</td>
+<td>Generated by date spine join; rolled to monthly for older history</td>
+</tr>
+<tr>
+<td><code>dim_candidate</code></td>
+<td>one row per ATS candidate</td>
+<td>SCD1</td>
+<td></td>
+</tr>
+<tr>
+<td><code>fact_application</code></td>
+<td>one row per application</td>
+<td>versioned</td>
+<td>Candidate→job; current state with audit columns</td>
+</tr>
+<tr>
+<td><code>fact_application_stage_history</code></td>
+<td>one row per application × stage interval</td>
+<td>append-only</td>
+<td>Time in stage and conversion</td>
+</tr>
+<tr>
+<td><code>fact_offer</code></td>
+<td>one row per offer or offer version</td>
+<td>versioned</td>
+<td>Offer status, start date, acceptance</td>
+</tr>
+<tr>
+<td><code>bridge_candidate_employee</code></td>
+<td>one row per resolved candidate-employee link</td>
+<td>audit-tracked</td>
+<td>Hire conversion logic</td>
+</tr>
+<tr>
+<td><code>fact_compensation_change</code></td>
+<td>one row per comp event</td>
+<td>append-only, restricted</td>
+<td></td>
+</tr>
+<tr>
+<td><code>fact_survey_response_restricted</code></td>
+<td>one row per response</td>
+<td>restricted</td>
+<td></td>
+</tr>
+<tr>
+<td><code>mart_engagement_agg</code></td>
+<td>one row per approved slice</td>
+<td>aggregated only, k≥5</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3>7.3 Worker type taxonomy</h3>
+<p><code>worker_type</code> is a first-class attribute on <code>dim_employee_profile_scd</code>. The MVP uses these values:</p>
+<table>
+<thead>
+<tr>
+<th><code>worker_type</code></th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>FT_EMPLOYEE</code></td>
+<td>Full-time regular employee</td>
+</tr>
+<tr>
+<td><code>PT_EMPLOYEE</code></td>
+<td>Part-time regular employee</td>
+</tr>
+<tr>
+<td><code>INTERN</code></td>
+<td>Intern or co-op</td>
+</tr>
+<tr>
+<td><code>CONTRACTOR</code></td>
+<td>Contractor on the company&#39;s payroll system or via agency, with a Workday record</td>
+</tr>
+<tr>
+<td><code>CONTINGENT</code></td>
+<td>Worker tracked in HRIS but not on company payroll (vendor staff, external consultants)</td>
+</tr>
+</tbody></table>
+<p><code>is_employee</code> is derived: <code>worker_type IN (&#39;FT_EMPLOYEE&#39;,&#39;PT_EMPLOYEE&#39;,&#39;INTERN&#39;)</code>. Headcount metrics default to employees only; the design allows total-workforce metrics that include contractors and contingents on request, with a clear suffix in the metric name (e.g., <code>total_workforce_active</code>).</p>
+<h3>7.4 Manager chain / span of control</h3>
+<p>Every daily snapshot generates <code>dim_manager_chain</code> via a recursive CTE walking the employee→manager edges in <code>dim_employee_profile_scd</code> as of that date.</p>
+<pre><code class="language-sql">with recursive chain as (
+    select
+        snapshot_date,
+        employee_key,
+        manager_employee_key as ancestor_employee_key,
+        1 as depth
+    from {{ ref(&#39;fact_headcount_snapshot_daily&#39;) }}
+    where manager_employee_key is not null
+
+    union all
+
+    select
+        c.snapshot_date,
+        c.employee_key,
+        h.manager_employee_key,
+        c.depth + 1
+    from chain c
+    join {{ ref(&#39;fact_headcount_snapshot_daily&#39;) }} h
+      on c.ancestor_employee_key = h.employee_key
+     and c.snapshot_date = h.snapshot_date
+    where h.manager_employee_key is not null
+      and c.depth &lt; 20
+)
+select * from chain;
+</code></pre>
+<p>Span of control as of any date is a count of direct reports per manager:</p>
+<pre><code class="language-sql">select
+    snapshot_date,
+    ancestor_employee_key as manager_employee_key,
+    count(distinct case when depth = 1 then employee_key end) as direct_reports,
+    count(distinct employee_key) as total_org_size
+from {{ ref(&#39;dim_manager_chain&#39;) }}
+group by 1, 2;
+</code></pre>
+<h3>7.5 Snapshot SQL and snapshot strategy</h3>
+<p>The dbt snapshot for employee profile uses the <em>effective-dated</em> SCD2 timestamp strategy:</p>
+<pre><code class="language-sql">{% snapshot snap_employee_profile %}
+{{
+    config(
+        target_schema=&#39;snapshots&#39;,
+        unique_key=&#39;employee_key&#39;,
+        strategy=&#39;timestamp&#39;,
+        updated_at=&#39;effective_date&#39;,
+        invalidate_hard_deletes=False
+    )
+}}
+select
+    employee_key,
+    person_key,
+    department_key,
+    job_key,
+    manager_employee_key,
+    location_key,
+    employment_status,
+    worker_type,
+    effective_date,
+    source_updated_at
+from {{ ref(&#39;stg_hris_worker_latest_effective&#39;) }}
+{% endsnapshot %}
+</code></pre>
+<p>Note <code>updated_at=&#39;effective_date&#39;</code>. This is the difference between a textbook implementation and one that actually answers HR questions: the SCD2 boundaries follow effective date, not transaction time. See §8.</p>
+<p>The daily headcount snapshot is generated by joining <code>dim_date</code> to the current employee population and filtering by employment dates:</p>
+<pre><code class="language-sql">select
+    d.date_day as snapshot_date,
+    e.employee_key,
+    e.person_key,
+    p.department_key,
+    p.job_key,
+    p.manager_employee_key,
+    p.location_key,
+    p.worker_type,
+    p.employment_status
+from {{ ref(&#39;dim_date&#39;) }} d
+join {{ ref(&#39;dim_employment_episode&#39;) }} ep
+    on d.date_day between ep.episode_start_date
+                       and coalesce(ep.episode_end_date, &#39;2999-12-31&#39;::date)
+join {{ ref(&#39;dim_employee&#39;) }} e
+    on e.employee_key = ep.employee_key
+join {{ ref(&#39;dim_employee_profile_scd&#39;) }} p
+    on p.employee_key = e.employee_key
+   and d.date_day between p.valid_from_date
+                       and coalesce(p.valid_to_date, &#39;2999-12-31&#39;::date)
+where p.employment_status = &#39;ACTIVE&#39;;
+</code></pre>
+<h3>7.6 Identity bridge merge</h3>
+<pre><code class="language-sql">merge into core.bridge_person_source t
+using prepared_identity_matches s
+   on t.source_system    = s.source_system
+  and t.source_object    = s.source_object
+  and t.source_record_id = s.source_record_id
+when matched then update set
+    t.person_key       = s.resolved_person_key,
+    t.match_method     = s.match_method,
+    t.match_confidence = s.match_confidence,
+    t.updated_at_utc   = current_timestamp()
+when not matched then insert (
+    bridge_person_source_key,
+    person_key,
+    source_system,
+    source_object,
+    source_record_id,
+    match_method,
+    match_confidence,
+    created_at_utc
+) values (
+    seq_bridge_person_source.nextval,
+    s.resolved_person_key,
+    s.source_system,
+    s.source_object,
+    s.source_record_id,
+    s.match_method,
+    s.match_confidence,
+    current_timestamp()
+);
+</code></pre>
+<hr>
+<h2>8. Effective Dating and Point-in-Time Reporting</h2>
+<p>This section addresses the single most common source of metric incorrectness in HR analytics.</p>
+<h3>8.1 The two timelines</h3>
+<p>Workday and most enterprise HRIS are <strong>effective-dated systems</strong>. Every change has two distinct timestamps:</p>
+<ul>
+<li><strong><code>effective_date</code></strong> — when the change is true in the real world (e.g., promotion <em>effective</em> 2026-01-01).</li>
+<li><strong><code>entry_date</code></strong> / <code>_source_updated_at</code> — when the change was entered into the system (e.g., entered 2026-01-15, two weeks after it took effect).</li>
+</ul>
+<p>If SCD2 boundaries are driven by <code>entry_date</code>, a promotion entered late will be invisible in historical headcount until its entry date. If a back-dated termination is entered after a snapshot has been taken, the historical headcount for that snapshot is now wrong. Both are common in HR.</p>
+<h3>8.2 The bi-temporal columns</h3>
+<p>Every history-bearing table in this design carries two pairs of date columns:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>valid_from_date</code>, <code>valid_to_date</code></td>
+<td>Effective-time interval — when the row is &quot;true&quot;</td>
+</tr>
+<tr>
+<td><code>recorded_at_utc</code>, <code>superseded_at_utc</code></td>
+<td>Transaction-time interval — when the row was known to the warehouse</td>
+</tr>
+</tbody></table>
+<p>The defaults for queries are:</p>
+<ul>
+<li><strong>Business reporting</strong> uses effective-time. &quot;Who was active on 2025-12-31?&quot; means <code>valid_from_date &lt;= &#39;2025-12-31&#39; &lt; coalesce(valid_to_date, &#39;2999-12-31&#39;)</code>.</li>
+<li><strong>Audit / restatement</strong> uses transaction-time. &quot;What did we <em>think</em> was true on 2026-01-15 about 2025-12-31?&quot; means filter on both intervals.</li>
+</ul>
+<p>This bi-temporal pattern is the foundation for restatement (§9) and is what makes <em>as-of</em> queries trustworthy.</p>
+<h3>8.3 As-of reporting macro</h3>
+<p>A small dbt macro encapsulates the as-of join so the rest of the codebase does not get it wrong:</p>
+<pre><code class="language-sql">{% macro as_of(history_relation, key_column, as_of_date) %}
+select *
+from {{ history_relation }}
+where valid_from_date &lt;= &#39;{{ as_of_date }}&#39;::date
+  and coalesce(valid_to_date, &#39;2999-12-31&#39;::date) &gt; &#39;{{ as_of_date }}&#39;::date
+  and recorded_at_utc &lt;= current_timestamp()
+{% endmacro %}
+</code></pre>
+<p>Used in models:</p>
+<pre><code class="language-sql">select *
+from {{ as_of(ref(&#39;dim_employee_profile_scd&#39;), &#39;employee_key&#39;, var(&#39;as_of_date&#39;)) }}
+</code></pre>
+<h3>8.4 Headcount snapshot is generated from effective-time history, not stored independently</h3>
+<p>The daily snapshot is <em>derived</em> from the SCD2 history every night. Re-running the snapshot for a back-dated date range with <code>--vars &#39;{&quot;as_of_date_from&quot;: &quot;2025-12-01&quot;, &quot;as_of_date_to&quot;: &quot;2025-12-31&quot;}&#39;</code> produces the corrected history. This is what makes restatement trivial: the snapshot is a view on history, not an independent source of truth.</p>
+<hr>
+<h2>9. Late-Arriving Facts, Back-Dated Edits, and Hard Deletes</h2>
+<h3>9.1 Late-arriving raw payloads</h3>
+<p>Append-only raw is already late-arrival-safe: a record landed today with <code>_source_updated_at</code> last week becomes a new row in <code>RAW</code>. Downstream:</p>
+<ul>
+<li>The <code>stg_*_latest</code> views resolve the most recent payload per <code>_source_record_id</code> by <code>_source_updated_at</code>.</li>
+<li>The dbt snapshot, driven by <code>effective_date</code>, produces the correct SCD2 boundaries even when the data arrives out of order.</li>
+<li>The headcount snapshot is regenerated from history, so any back-dated effective change automatically corrects historical days the next time the snapshot runs.</li>
+</ul>
+<h3>9.2 Back-dated effective changes (Workday&#39;s classic case)</h3>
+<p>A promotion entered today, effective last Monday, is handled by:</p>
+<ol>
+<li>Capturing <code>effective_date</code> from the Workday RaaS extract (or REST equivalent) into a dedicated raw column, <em>not</em> using transaction time.</li>
+<li>The SCD2 snapshot uses <code>effective_date</code> as the strategy column.</li>
+<li>The downstream daily headcount snapshot, when regenerated, joins the corrected SCD2 row and the historical days now show the corrected manager/department/level.</li>
+</ol>
+<p>This is why §7.5 specifies <code>updated_at=&#39;effective_date&#39;</code> rather than <code>&#39;source_updated_at&#39;</code>. The choice is non-obvious and worth flagging in any code review.</p>
+<h3>9.3 Restatement policy</h3>
+<p>Marts published to BI are <em>never</em> mutated in place. Instead:</p>
+<ul>
+<li>The mart is rebuilt from the corrected core tables.</li>
+<li>Restated rows are tagged with a <code>restated_at_utc</code> audit column and a <code>restatement_reason</code> enum.</li>
+<li>Downstream consumers see consistent published numbers between rebuilds; the restatement history is queryable.</li>
+</ul>
+<p>For metrics that are external-facing (board decks, EEO-1 filings), a frozen <code>mart_*_published_v{n}</code> snapshot is preserved at publication time. Restatements produce <code>v{n+1}</code>; <code>v{n}</code> is read-only and audit-logged.</p>
+<h3>9.4 Hard deletes from source</h3>
+<p>A hard-deleted source record (a candidate purged from the ATS, an employee scrubbed for GDPR/PIPEDA) is detected one of two ways:</p>
+<ul>
+<li><strong>Explicit deletion event</strong> from the source (Greenhouse <code>delete</code> webhooks, where available; Workday business processes).</li>
+<li><strong>Reconciliation diff</strong> between a full extract and the warehouse population, run on a defined cadence per source (nightly for HR, weekly for ATS).</li>
+</ul>
+<p>Detection sets <code>_is_deleted=TRUE</code> on the latest raw row and triggers a downstream supersession in the bridge and in <code>dim_*</code> tables. The fact tables remain intact (numbers do not retroactively change), but the dimension is marked inactive. For GDPR/PIPEDA right-to-erasure (§11), an additional purge step <em>replaces</em> identifying values with surrogate placeholders.</p>
+<hr>
+<h2>10. Orchestration, Testing, and Observability</h2>
+<h3>10.1 Airflow</h3>
+<p>Airflow models workflows as DAGs of tasks with dependencies. Tasks must be <strong>idempotent</strong> (safe to retry), produce no partial side-effects, and rely only on the warehouse for state — never on the worker filesystem.</p>
+<table>
+<thead>
+<tr>
+<th>DAG</th>
+<th>Frequency</th>
+<th>Tasks</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>hris_daily</code></td>
+<td>Nightly (e.g., 02:00 UTC)</td>
+<td>extract Workday → land raw → <code>dbt build --select tag:hris</code> → publish workforce marts</td>
+</tr>
+<tr>
+<td><code>ats_incremental</code></td>
+<td>Every 1–4h</td>
+<td>extract ATS deltas → land raw → <code>dbt build --select tag:ats</code> → publish recruiting marts</td>
+</tr>
+<tr>
+<td><code>webhook_ingest</code></td>
+<td>Continuous</td>
+<td>receive signed webhook → verify signature → dedupe by event id → land raw event</td>
+</tr>
+<tr>
+<td><code>reconcile_ats</code></td>
+<td>Daily</td>
+<td>full ATS reconciliation extract → diff vs warehouse → flag missing/extra rows</td>
+</tr>
+<tr>
+<td><code>restricted_phase3</code></td>
+<td>Nightly</td>
+<td>compensation + survey loads → restricted marts → privacy checks</td>
+</tr>
+<tr>
+<td><code>backfill</code></td>
+<td>Manual</td>
+<td>parametrised full historical pull, conservative concurrency</td>
+</tr>
+</tbody></table>
+<p>DAG conventions:</p>
+<ul>
+<li><code>catchup=False</code> by default. Backfills are explicit.</li>
+<li>Watermarks come from <code>data_interval_start</code> / <code>logical_date</code>, never <code>datetime.now()</code>.</li>
+<li>Retries are explicit per task (<code>retries=3</code>, <code>retry_delay=timedelta(minutes=5)</code>, <code>retry_exponential_backoff=True</code>).</li>
+<li>SLA per DAG; alert routing per failure type.</li>
+<li>Secrets via Airflow Connections backed by AWS Secrets Manager or Azure Key Vault.</li>
+</ul>
+<h3>10.2 Data quality tests</h3>
+<p>Minimum dbt test layer for the MVP:</p>
+<ul>
+<li><code>unique</code> and <code>not_null</code> on every warehouse key and every source natural key.</li>
+<li><code>relationships</code> from facts to dimensions.</li>
+<li><code>accepted_values</code> on enums (<code>employment_status</code>, <code>worker_type</code>, <code>application_status</code>, <code>offer_status</code>).</li>
+<li><code>dbt source freshness</code> on raw HRIS and ATS sources, with explicit <code>warn_after</code> and <code>error_after</code>.</li>
+<li>Custom test for <strong>overlapping SCD2 intervals</strong> per <code>employee_key</code>.</li>
+<li>Custom test for <strong>overlapping employment episodes</strong> per <code>person_key</code>.</li>
+<li>Custom test for <strong>headcount monotonicity sanity</strong> (day-over-day delta within an expected band; alerts but doesn&#39;t fail).</li>
+<li>Row-count delta checks at the extract layer (anomalous spikes/drops).</li>
+<li>Webhook dedupe verification: count of distinct event ids equals count of webhook rows in any 24h window.</li>
+</ul>
+<h3>10.3 Observability</h3>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Airflow UI</td>
+<td>DAG/task status, retries, logs</td>
+</tr>
+<tr>
+<td>dbt test + freshness output</td>
+<td>Pipeline health and stale-source alerting</td>
+</tr>
+<tr>
+<td><strong>Elementary</strong> (or <code>dbt-artifacts</code>)</td>
+<td>dbt-native data observability: anomaly detection on row counts, schema changes, test failures over time</td>
+</tr>
+<tr>
+<td>Snowflake <code>QUERY_HISTORY</code></td>
+<td>Load runtime, warehouse usage, cost attribution</td>
+</tr>
+<tr>
+<td>Snowflake <code>ACCESS_HISTORY</code></td>
+<td>Privacy audit (who queried what) — see §11</td>
+</tr>
+<tr>
+<td>OpenLineage (optional Phase 2+)</td>
+<td>End-to-end lineage across extract → dbt → BI</td>
+</tr>
+<tr>
+<td>Identity review queue</td>
+<td><code>person_resolution_case</code> size and ageing</td>
+</tr>
+</tbody></table>
+<p>Alerts are routed by severity:</p>
+<ul>
+<li>Critical: failed extract, failed dbt build, source freshness <code>error_after</code> breached.</li>
+<li>Warning: anomalous row counts, identity review queue growing, monotonicity tripped.</li>
+<li>Informational: completed DAGs (low volume).</li>
+</ul>
+<h3>10.4 Schema evolution and data contracts</h3>
+<p>When Workday adds a field or Greenhouse renames a stage, the design tolerates it gracefully:</p>
+<ul>
+<li>Raw is JSON <code>VARIANT</code> — new fields are landed without schema changes.</li>
+<li>Base views explicitly project columns; a missing column produces a controlled failure rather than silent loss.</li>
+<li>dbt model contracts (dbt 1.5+ <code>contract:</code> blocks) on published marts and on <code>dim_employee_profile_scd</code> / <code>fact_employment_event</code> enforce stability for downstream consumers.</li>
+<li>A weekly job inspects the JSON schema of recent raw payloads and diffs against a tracked schema; new keys raise a low-severity ticket for the engineer.</li>
+</ul>
+<hr>
+<h2>11. Privacy, Governance, and Compliance</h2>
+<blockquote>
+<p>Privacy is treated here the way a good engineer treats security — as a design constraint that is cheaper to honour up front than to retrofit.</p>
+</blockquote>
+<h3>11.1 Applicable regimes</h3>
+<p>The design must accommodate Canadian federal <strong>PIPEDA</strong>, <strong>Quebec Law 25</strong>, US <strong>CCPA/CPRA</strong>, <strong>GDPR</strong> for any EU-resident employee or candidate, and <strong>US EEO-1</strong> aggregated demographic reporting where applicable. The data model provides the <em>technical primitives</em> for compliance — restricted schemas, masking and row-access policies, k-anonymity thresholds, audit logging, and the right-to-erasure flow in §11.7. Specific obligations (lawful basis, consent capture, retention windows, subject-access response timelines) are owned by Legal and Privacy partners; this document does not attempt to substitute for that work.</p>
+<h3>11.2 Schema partitioning by sensitivity</h3>
+<table>
+<thead>
+<tr>
+<th>Schema</th>
+<th>Contents</th>
+<th>Default access</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RAW</code>, <code>BASE</code>, <code>STAGING</code></td>
+<td>Source landings + typed views</td>
+<td><code>PA_ENGINEER</code>; analyst access blocked</td>
+</tr>
+<tr>
+<td><code>CORE</code></td>
+<td>Non-sensitive dims and facts (keys, event types, dates, departments, jobs)</td>
+<td><code>PA_ENGINEER</code>, <code>PA_ANALYST</code></td>
+</tr>
+<tr>
+<td><code>CORE_RESTRICTED</code></td>
+<td>Direct identifiers (name, email, address, DOB, government ids), demographic/protected attributes</td>
+<td><code>PA_SENSITIVE_HR</code>, matching service account</td>
+</tr>
+<tr>
+<td><code>CORE_COMP</code></td>
+<td>Compensation events and bands</td>
+<td><code>PA_COMP</code></td>
+</tr>
+<tr>
+<td><code>CORE_SURVEY</code></td>
+<td>Raw survey responses</td>
+<td><code>PA_SURVEY_RESTRICTED</code></td>
+</tr>
+<tr>
+<td><code>MARTS</code></td>
+<td>Conformed business marts (no direct identifiers)</td>
+<td><code>PA_ANALYST</code></td>
+</tr>
+<tr>
+<td><code>MARTS_RESTRICTED</code></td>
+<td>Marts that combine identity with sensitive data (e.g., individual comp by manager)</td>
+<td>role-by-role grant</td>
+</tr>
+<tr>
+<td><code>SEMANTIC</code></td>
+<td>Metric definitions (views) over <code>MARTS</code></td>
+<td><code>PA_ANALYST</code></td>
+</tr>
+</tbody></table>
+<h3>11.3 Roles</h3>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Access</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>PA_PLATFORM_ADMIN</code></td>
+<td>Infrastructure, grants, policies, restricted schemas</td>
+</tr>
+<tr>
+<td><code>PA_ENGINEER</code></td>
+<td>Raw, base, stage, core, marts (non-restricted)</td>
+</tr>
+<tr>
+<td><code>PA_ANALYST</code></td>
+<td>Marts and semantic models only</td>
+</tr>
+<tr>
+<td><code>PA_SENSITIVE_HR</code></td>
+<td>Approved access to restricted employee identifiers</td>
+</tr>
+<tr>
+<td><code>PA_COMP</code></td>
+<td>Compensation restricted schema</td>
+</tr>
+<tr>
+<td><code>PA_SURVEY_RESTRICTED</code></td>
+<td>Raw survey responses</td>
+</tr>
+<tr>
+<td><code>PA_AUDITOR</code></td>
+<td>Read-only access to <code>ACCESS_HISTORY</code> and identity review queue, no business data</td>
+</tr>
+</tbody></table>
+<h3>11.4 Snowflake policy primitives</h3>
+<ul>
+<li><strong>Masking policies</strong> on direct identifiers in restricted views, applied via <code>WITH MASKING POLICY</code> on the restricted column. Default mask returns <code>&#39;REDACTED&#39;</code> to non-privileged roles.</li>
+<li><strong>Row access policies</strong> on tables that mix demographic groups, suppressing rows for low-population slices to enforce k-anonymity downstream.</li>
+<li>Snowflake evaluates <strong>row access policies before masking policies</strong> when both apply on a query — relevant when designing layered protection.</li>
+<li><strong><code>ACCESS_HISTORY</code></strong> queried daily and persisted to <code>audit.access_log</code> for retention beyond Snowflake&#39;s default window. Anomalous access patterns (volume, breadth, off-hours) raise alerts to <code>PA_AUDITOR</code>.</li>
+</ul>
+<h3>11.5 Survey thresholding (k-anonymity)</h3>
+<p>The <code>mart_engagement_agg</code> mart suppresses any reporting slice with fewer than <strong>k=5 respondents</strong>. The choice of 5 is a reasonable industry default; the actual threshold is an organisational policy decision and may be tightened (e.g., k=10) for highly sensitive items. Suppressed slices return a <code>NULL</code> score and a <code>suppressed_reason=&#39;below_threshold&#39;</code> indicator so consumers see the absence explicitly rather than missing rows.</p>
+<p>A second, less obvious risk is <strong>differential disclosure</strong> — repeated queries with different filters can isolate a person even when each individual query meets the threshold. Mitigation in this design:</p>
+<ul>
+<li>All survey reporting goes through <code>mart_engagement_agg</code>; the underlying <code>fact_survey_response_restricted</code> is not queryable by analysts.</li>
+<li>The mart enforces threshold at materialisation time; ad-hoc filters can only intersect to <em>more</em> suppressed slices, not fewer.</li>
+<li>High-sensitivity items (mental health, harassment) use a stricter k and may be reported only at organisation level.</li>
+</ul>
+<h3>11.6 Protected attributes and DEI reporting</h3>
+<p>Race, gender, disability status, veteran status, and similar protected attributes are stored in a separate restricted table <code>dim_person_protected_attributes</code> and joined into reporting only via approved aggregation marts. EEO-1 reporting marts aggregate to legally defined categories and apply the k-threshold; they are produced in a sealed pipeline and accessible only to the EEO reporting role. Individual values are never exposed to general analytics.</p>
+<h3>11.7 Right-to-erasure (GDPR / PIPEDA)</h3>
+<p>The hardest design problem in People Analytics privacy is the apparent conflict between two legitimate requirements: a person has the right to be erased from our systems, <strong>and</strong> historical headcount, attrition, and EEO reports must remain stable and reproducible. A naive &quot;delete the row&quot; implementation breaks every historical metric that included that person. A naive &quot;ignore deletion&quot; violates the law.</p>
+<p>The design&#39;s answer is <strong>separation of identity from contribution</strong>. The <code>person_key</code> is a meaningless integer — it identifies <em>that an employee existed</em> without identifying <em>who they were</em>. Erasure removes the personally identifying attributes; the contribution to historical aggregates remains.</p>
+<h4>The erasure flow</h4>
+<ol>
+<li><strong>Intake.</strong> Privacy team submits an erasure request via a tracked process (ticketing system, signed off by DPO or equivalent). The request carries the legal basis (GDPR Art. 17, PIPEDA principle, Law 25 right of de-indexation, etc. — the engineer does not need to evaluate this) and enough information to identify the person. An engineer with <code>PA_SENSITIVE_HR</code> access resolves the request to a <code>person_key</code> using the restricted identity tables. <strong>The requester never sees <code>person_key</code> directly</strong> — it is opaque.</li>
+<li><strong>Approval gate.</strong> A second engineer reviews the resolved <code>person_key</code> against the request to prevent erroneous erasure. Approval is recorded in <code>audit.erasure_request</code> with both engineers&#39; identities and the request id.</li>
+<li><strong>Execution.</strong> The <code>erase_person</code> Airflow DAG runs against the approved request. The DAG is parameterised by <code>person_key</code> and <code>request_id</code> and is the <em>only</em> code path that can modify identifying data outside the normal pipeline.</li>
+<li><strong>Verification.</strong> Post-erasure, an automated check confirms (a) all marts rebuild successfully, (b) historical aggregates are unchanged within tolerance, and (c) no identifying value for the person remains in any non-tombstone column.</li>
+<li><strong>Audit.</strong> The DAG run, the SQL it executed, and the verification result are appended to <code>audit.erasure_log</code> and retained according to the legal retention policy (typically the longer of 7 years or the regulator&#39;s required period).</li>
+</ol>
+<h4>What the erasure macro does, layer by layer</h4>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Action</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RAW.*</code> (any source containing the person)</td>
+<td>Replace <code>raw_payload</code> with a <strong>tombstone payload</strong> of identical JSON shape but with sensitive scalar values replaced by <code>&#39;__ERASED__&#39;</code> and arrays emptied. Retain <code>_source_record_id</code>, <code>_source_updated_at</code>, <code>_ingested_at_utc</code>. Set <code>_is_erased = TRUE</code>.</td>
+<td>Preserves the <em>fact that an event happened</em> and its timing for audit, removes the personal data. Replay safety is maintained — the pipeline still parses the row, it just sees nulls where the name used to be.</td>
+</tr>
+<tr>
+<td><code>BASE.*</code>, <code>STAGING.*</code></td>
+<td>Re-derived from RAW on next dbt run. No special action needed.</td>
+<td>Stateless views over RAW; correctness follows automatically.</td>
+</tr>
+<tr>
+<td><code>CORE_RESTRICTED.dim_person_pii</code></td>
+<td>Replace name, email, phone, address, government identifiers, DOB with surrogate placeholders (<code>&#39;erased_&lt;person_key&gt;@erased.local&#39;</code> for email, <code>NULL</code> for free-text fields). Set <code>is_erased = TRUE</code>, <code>erased_at_utc</code>, <code>erasure_request_id</code>.</td>
+<td>Preserves referential integrity from <code>dim_person</code> while removing all identifying values.</td>
+</tr>
+<tr>
+<td><code>CORE.dim_person</code></td>
+<td>Retain <code>person_key</code>. Null <code>display_name</code>, <code>preferred_name</code>, any non-restricted attribute that could re-identify. Set <code>is_erased = TRUE</code>, <code>erased_at_utc</code>, <code>erasure_reason</code>.</td>
+<td>The key remains so historical fact rows still join to <em>something</em>; the row no longer identifies a person.</td>
+</tr>
+<tr>
+<td><code>CORE.dim_employee</code>, <code>dim_candidate</code></td>
+<td>Same pattern — keep keys, null any local non-restricted attributes that could re-identify (e.g., LinkedIn URL captured into the candidate row).</td>
+<td>Keys are preserved across the bridge so candidate→employee lineage is intact, but anonymised.</td>
+</tr>
+<tr>
+<td><code>CORE.bridge_person_source</code></td>
+<td>Retain rows. Mark <code>is_erased = TRUE</code>. The source record ids are kept (they&#39;re meaningless without the source system, and required for replay).</td>
+<td>Bridge integrity is required for incremental ingestion to remain idempotent.</td>
+</tr>
+<tr>
+<td><code>CORE.fact_employment_event</code>, <code>fact_application</code>, <code>fact_offer</code>, <code>fact_compensation_change</code> (restricted)</td>
+<td><strong>Untouched.</strong> Facts join to <code>dim_person</code>/<code>dim_employee</code> by key; the rows still aggregate correctly but cannot be traced back to a person. Free-text columns on facts (e.g., <code>termination_notes</code>) are explicitly enumerated and tombstoned per row.</td>
+<td>Aggregates remain stable. EEO-1 for 2023 still produces the same numbers in 2027 even after an erasure.</td>
+</tr>
+<tr>
+<td><code>MARTS.*</code>, <code>MARTS_RESTRICTED.*</code></td>
+<td>Rebuilt from CORE on the next scheduled run, plus an immediate forced rebuild as the last DAG step.</td>
+<td>Published numbers reconcile to CORE within hours.</td>
+</tr>
+<tr>
+<td><code>audit.erasure_log</code></td>
+<td>Append row: <code>request_id, person_key, executed_at_utc, executed_by, sql_text, rows_affected, verification_result</code>. Retained per legal policy.</td>
+<td>Demonstrates compliance to auditors and regulators.</td>
+</tr>
+</tbody></table>
+<h4>Sketch: the <code>erase_person</code> Snowflake procedure</h4>
+<pre><code class="language-sql">create or replace procedure ops.erase_person(p_person_key number, p_request_id varchar)
+returns variant
+language sql
+execute as owner
+as
+$$
+declare
+    v_rows_pii      number;
+    v_rows_person   number;
+    v_rows_employee number;
+    v_rows_raw      number;
+begin
+    -- 1. Restricted PII table: replace identifying values, keep keys.
+    update core_restricted.dim_person_pii
+       set legal_first_name   = null,
+           legal_last_name    = null,
+           preferred_name     = null,
+           personal_email     = &#39;erased_&#39; || person_key || &#39;@erased.local&#39;,
+           corporate_email    = &#39;erased_&#39; || person_key || &#39;@erased.local&#39;,
+           phone              = null,
+           date_of_birth      = null,
+           government_id_hash = null,
+           home_address       = null,
+           is_erased          = true,
+           erased_at_utc      = current_timestamp(),
+           erasure_request_id = :p_request_id
+     where person_key = :p_person_key;
+    v_rows_pii := sqlrowcount;
+
+    -- 2. Public dim_person: retain key, null re-identifying attributes.
+    update core.dim_person
+       set display_name        = null,
+           preferred_name       = null,
+           is_erased            = true,
+           erased_at_utc        = current_timestamp(),
+           erasure_request_id   = :p_request_id
+     where person_key = :p_person_key;
+    v_rows_person := sqlrowcount;
+
+    -- 3. dim_employee for every employee record this person had.
+    update core.dim_employee
+       set workday_username     = null,
+           is_erased            = true,
+           erased_at_utc        = current_timestamp()
+     where employee_key in (
+         select employee_key from core.dim_employee where person_key = :p_person_key
+     );
+    v_rows_employee := sqlrowcount;
+
+    -- 4. RAW tombstones across every source touching this person.
+    --    The mapping is via bridge_person_source.
+    let cur cursor for
+        select source_system, source_object, source_record_id
+        from   core.bridge_person_source
+        where  person_key = :p_person_key;
+    for rec in cur do
+        call ops.raw_tombstone(rec.source_system, rec.source_object, rec.source_record_id, :p_request_id);
+    end for;
+
+    -- 5. Audit.
+    insert into audit.erasure_log (
+        request_id, person_key, executed_at_utc, executed_by,
+        rows_pii, rows_person, rows_employee, status
+    ) values (
+        :p_request_id, :p_person_key, current_timestamp(), current_user(),
+        v_rows_pii, v_rows_person, v_rows_employee, &#39;SUCCESS&#39;
+    );
+
+    return object_construct(
+        &#39;request_id&#39;,     :p_request_id,
+        &#39;person_key&#39;,     :p_person_key,
+        &#39;rows_pii&#39;,       v_rows_pii,
+        &#39;rows_person&#39;,    v_rows_person,
+        &#39;rows_employee&#39;,  v_rows_employee
+    );
+end;
+$$;
+</code></pre>
+<p>The companion <code>ops.raw_tombstone</code> procedure walks the JSON payload and replaces a configured set of sensitive paths with <code>&#39;__ERASED__&#39;</code>, leaving the rest of the structure intact so downstream parsing does not break.</p>
+<h4>Verification check (runs as the last DAG step)</h4>
+<pre><code class="language-sql">-- Aggregate-stability check: headcount for any historical date that
+-- included this person must be unchanged versus a snapshot taken before
+-- the erasure DAG ran.
+select
+    snapshot_date,
+    pre_erasure_count,
+    post_erasure_count,
+    pre_erasure_count = post_erasure_count as ok
+from audit.erasure_pre_post_check
+where request_id = :request_id
+  and ok = false;
+-- Expected: zero rows. Any row indicates the erasure altered an
+-- aggregate, which means a fact column carried identifying data
+-- and the macro needs to be extended.
+</code></pre>
+<h4>Edge cases the design handles</h4>
+<ul>
+<li><strong>Erasure of a candidate who was never hired.</strong> Only <code>dim_candidate</code>, <code>bridge_person_source</code>, ATS RAW rows, and <code>dim_person</code> are touched. No employment facts exist.</li>
+<li><strong>Erasure of a rehire (one person, multiple <code>employee_key</code>s).</strong> All <code>employee_key</code> rows linked to the same <code>person_key</code> are processed in one transaction. The bridge guarantees the linkage.</li>
+<li><strong>Re-ingestion attempts after erasure.</strong> The bridge marks the <code>source_record_id</code> as erased; the next normal extract will refresh the raw row, but a downstream guard on <code>bridge_person_source.is_erased</code> re-tombstones the new payload before it reaches CORE. This prevents identity leakage from incremental loads landing erased data again.</li>
+<li><strong>Mistaken erasure (rare but possible).</strong> The audit log retains enough context to reconstruct the <em>fact</em> of erasure but not the data itself — by design. Reversal requires re-onboarding the person from the original source, which is the correct behaviour.</li>
+<li><strong>Right-to-portability vs right-to-erasure ordering.</strong> A common pairing — the person requests both their data export <em>and</em> erasure. The export must complete and be verified delivered before the erasure DAG runs. The intake process enforces this ordering.</li>
+</ul>
+<h4>What this is <em>not</em></h4>
+<ul>
+<li>It is not a guarantee that every backup, every BI tool&#39;s cached extract, and every personal export sitting in an analyst&#39;s downloads folder is purged. Those are out-of-band concerns owned by IT/Security with their own retention controls.</li>
+<li>It is not a replacement for the org&#39;s broader privacy program (consent capture, DPIAs, breach response). It is the <strong>warehouse-side</strong> implementation that makes the broader program enforceable.</li>
+</ul>
+<p>This pattern preserves <strong>statistical truth without preserving identifiable data</strong> — which is the only way to honour both an erasure request and a board request for last year&#39;s attrition number, on the same Tuesday afternoon.</p>
+<h3>11.8 Retention</h3>
+<table>
+<thead>
+<tr>
+<th>Data class</th>
+<th>Default retention</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Raw payloads</td>
+<td>25 months rolling</td>
+<td>Long enough for audit and most restatement; configurable per source</td>
+</tr>
+<tr>
+<td><code>ACCESS_HISTORY</code> mirror</td>
+<td>7 years</td>
+<td>Audit support</td>
+</tr>
+<tr>
+<td>Identity review queue (resolved cases)</td>
+<td>7 years</td>
+<td>Audit support</td>
+</tr>
+<tr>
+<td>Demographic protected attributes</td>
+<td>Per legal retention policy</td>
+<td></td>
+</tr>
+<tr>
+<td>Survey responses (raw)</td>
+<td>24 months unless legal hold</td>
+<td>Aggregated data retained indefinitely</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>12. Environments, CI/CD, Secrets, and Cost</h2>
+<h3>12.1 Environments</h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Purpose</th>
+<th>Snowflake account/db</th>
+<th>dbt target</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>dev</code></td>
+<td>Engineer sandboxes; per-engineer schemas</td>
+<td>shared dev account, <code>PEOPLE_DEV</code></td>
+<td><code>dev_&lt;user&gt;</code></td>
+</tr>
+<tr>
+<td><code>ci</code></td>
+<td>Pull-request checks</td>
+<td>shared dev account, ephemeral schemas <code>PEOPLE_CI_&lt;sha&gt;</code></td>
+<td><code>ci_&lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td><code>staging</code></td>
+<td>Integration testing with sanitised production data</td>
+<td>dedicated staging account, <code>PEOPLE_STG</code></td>
+<td><code>stg</code></td>
+</tr>
+<tr>
+<td><code>prod</code></td>
+<td>Production</td>
+<td>dedicated prod account, <code>PEOPLE_PROD</code></td>
+<td><code>prod</code></td>
+</tr>
+</tbody></table>
+<p>Sanitised data in <code>staging</code> is generated by a <code>mask_for_staging.sql</code> macro that replaces direct identifiers with synthetic values, preserving referential integrity. Production data is <em>never</em> copied to dev.</p>
+<h3>12.2 CI</h3>
+<ul>
+<li>On PR open: lint (<code>sqlfluff</code>, <code>ruff</code>, <code>mypy</code>), <code>dbt parse</code>, <code>dbt build --select state:modified+</code> against the ephemeral CI schema, run all dbt tests on modified models and their downstreams (&quot;slim CI&quot;), Python unit tests, integration tests for extractors against recorded fixtures (no live API calls).</li>
+<li>On merge to <code>main</code>: deploy dbt artefacts and Python package; promote to staging.</li>
+<li>On tag: promote to production.</li>
+</ul>
+<h3>12.3 Secrets</h3>
+<ul>
+<li>Snowflake authentication: <strong>key-pair auth</strong> (RSA), no passwords. Keys rotated quarterly via secret manager.</li>
+<li>API keys (Workday, Ashby, Greenhouse, survey vendor): stored in AWS Secrets Manager / Azure Key Vault, fetched at runtime. Never in environment files committed to the repo.</li>
+<li>Webhook signing secrets: same pattern, separate per-source.</li>
+<li>CI uses short-lived OIDC-issued credentials to the cloud secret manager.</li>
+</ul>
+<h3>12.4 Cost</h3>
+<p>Snowflake costs in this workload are dominated by the dbt build and ad-hoc analyst queries, not the extract. Defaults:</p>
+<ul>
+<li>Dedicated <code>PA_INGEST_WH</code> (XS) for landing — runs in seconds, scales to S during initial backfill.</li>
+<li>Dedicated <code>PA_TRANSFORM_WH</code> (S, auto-suspend 60s) for dbt builds.</li>
+<li>Dedicated <code>PA_ANALYST_WH</code> (S, auto-suspend 60s, multi-cluster up to 3) for BI and ad-hoc.</li>
+<li>Materialisation defaults: <code>view</code> for stage, <code>incremental</code> for facts, <code>table</code> for marts, <code>snapshot</code> for SCD2.</li>
+<li>A monthly cost report joins <code>WAREHOUSE_METERING_HISTORY</code> with dbt model metadata to attribute spend per model.</li>
+</ul>
+<p>At 1k–5k headcount the expected daily warehouse credit consumption for the full pipeline is small (order of a few credits/day on S warehouses); the design is not constrained by cost at this scale and focuses on simplicity.</p>
+<hr>
+<h2>13. Semantic Layer and Metric Definitions</h2>
+<blockquote>
+<p>One definition of every metric, in version control, consumable by every BI tool.</p>
+</blockquote>
+<h3>13.1 Semantic layer choice</h3>
+<p>The semantic layer is implemented in <strong>dbt semantic models / MetricFlow</strong>. Definitions live in YAML next to the models they reference; metric SQL is generated by MetricFlow and exposed to BI tools either through MetricFlow&#39;s server or by materialising metric views into the <code>SEMANTIC</code> schema for tools that read SQL directly.</p>
+<p>This keeps metric definitions:</p>
+<ul>
+<li>in the same repository as the models;</li>
+<li>under PR review like any other change;</li>
+<li>generating the same numbers regardless of which BI tool consumes them.</li>
+</ul>
+<h3>13.2 Metric definitions</h3>
+<p>Below are the eight Phase 1 + Phase 2 metrics that every dashboard and ad-hoc analysis must use. Each is specified with formula, denominator choice, edge cases, and owner.</p>
+<h4>13.2.1 Active headcount</h4>
+<ul>
+<li><strong>Definition</strong>: Distinct count of active employees (<code>worker_type IN (&#39;FT_EMPLOYEE&#39;,&#39;PT_EMPLOYEE&#39;,&#39;INTERN&#39;)</code>, <code>employment_status=&#39;ACTIVE&#39;</code>) as of a date.</li>
+<li><strong>Source</strong>: <code>fact_headcount_snapshot_daily</code> (or as-of join on <code>dim_employee_profile_scd</code>).</li>
+<li><strong>Formula</strong>: <code>count(distinct employee_key) where snapshot_date = &lt;as_of_date&gt;</code>.</li>
+<li><strong>Slice dimensions</strong>: department, location, manager_chain (any depth), job_family, level, worker_type.</li>
+<li><strong>Edge cases</strong>: workers on leave count as active (configurable via <code>include_on_leave</code> parameter, default <code>TRUE</code>); contractors and contingents excluded by default but available via <code>total_workforce_active</code>.</li>
+<li><strong>Owner</strong>: People Analytics; consumed by HR, Finance, Leadership.</li>
+</ul>
+<h4>13.2.2 Hires (period)</h4>
+<ul>
+<li><strong>Definition</strong>: Count of <code>fact_employment_event</code> rows where <code>event_type=&#39;HIRE&#39;</code> and <code>effective_date</code> falls in the period.</li>
+<li><strong>Slice dimensions</strong>: department, location, source_system, recruiter, hiring_manager, source_of_hire (from ATS).</li>
+<li><strong>Edge cases</strong>: rehires counted separately as <code>event_type=&#39;REHIRE&#39;</code>; combined view available as <code>hires_including_rehires</code>.</li>
+<li><strong>Owner</strong>: People Analytics.</li>
+</ul>
+<h4>13.2.3 Terminations (period)</h4>
+<ul>
+<li><strong>Definition</strong>: Count of <code>fact_employment_event</code> rows where <code>event_type=&#39;TERMINATION&#39;</code> and <code>effective_date</code> in the period.</li>
+<li><strong>Sub-types</strong>: <code>voluntary</code>, <code>involuntary</code>, <code>regrettable_voluntary</code> (a flagged subset of voluntary based on tenure × performance × eligibility-for-rehire — definition agreed with HR partners).</li>
+<li><strong>Owner</strong>: People Analytics, with definition reviewed quarterly with HR.</li>
+</ul>
+<h4>13.2.4 Attrition rate (annualised)</h4>
+<ul>
+<li><strong>Definition</strong>: <code>terminations_in_period / average_active_headcount_in_period × (12 / months_in_period)</code>.</li>
+<li><strong>Denominator choice</strong>: average of (start-of-period active, end-of-period active). Documented because HR and Finance commonly disagree on this; the average method is the most defensible default.</li>
+<li><strong>Variants</strong>: <code>voluntary_attrition_rate</code>, <code>regrettable_attrition_rate</code>, <code>involuntary_attrition_rate</code>.</li>
+<li><strong>Edge cases</strong>: org changes mid-period preserve the original org for the leaver (attrition is attributed to where the person was, not where the role moved). Tenure cohorts use <code>current_tenure_band</code> calculated from <code>episode_start_date</code>.</li>
+<li><strong>Owner</strong>: People Analytics; reconciled monthly with Finance.</li>
+</ul>
+<h4>13.2.5 Internal mobility rate</h4>
+<ul>
+<li><strong>Definition</strong>: <code>internal_moves_in_period / average_active_headcount × annualisation_factor</code>.</li>
+<li><strong>Internal move</strong> = a <code>fact_employment_event</code> with <code>event_type IN (&#39;TRANSFER&#39;,&#39;PROMOTION&#39;,&#39;LATERAL_MOVE&#39;)</code> where <code>effective_date</code> in the period.</li>
+<li><strong>Owner</strong>: People Analytics.</li>
+</ul>
+<h4>13.2.6 Span of control</h4>
+<ul>
+<li><strong>Definition</strong>: <code>count(distinct direct_report_employee_key)</code> from <code>dim_manager_chain</code> where <code>depth=1</code>, per manager per snapshot date.</li>
+<li><strong>Aggregations</strong>: average, median, percentile distribution by department/level.</li>
+<li><strong>Edge cases</strong>: dotted-line reports excluded by default; a separate <code>span_including_dotted_line</code> metric is available when source captures it.</li>
+<li><strong>Owner</strong>: People Analytics.</li>
+</ul>
+<h4>13.2.7 Time to hire (recruiting)</h4>
+<ul>
+<li><strong>Definition</strong>: For applications that resulted in a hire, the number of business days between application submission and offer acceptance.</li>
+<li><strong>Formula</strong>: <code>business_days_between(fact_application.applied_at, fact_offer.accepted_at)</code> for <code>fact_application</code> rows joined to <code>bridge_candidate_employee</code>.</li>
+<li><strong>Slice dimensions</strong>: department, role level, source_of_hire, recruiter.</li>
+<li><strong>Edge cases</strong>: applications without acceptance excluded; applications closed for non-fill reasons excluded; the metric reports a <em>median</em> by default because the distribution is heavily right-skewed.</li>
+<li><strong>Owner</strong>: People Analytics; reconciled with Recruiting Ops.</li>
+</ul>
+<h4>13.2.8 Offer acceptance rate</h4>
+<ul>
+<li><strong>Definition</strong>: <code>count(offers where status=&#39;ACCEPTED&#39;) / count(offers where status IN (&#39;ACCEPTED&#39;,&#39;DECLINED&#39;,&#39;EXPIRED&#39;))</code> over the period, by <code>effective_date</code> of the offer decision.</li>
+<li><strong>Edge cases</strong>: offers withdrawn by the company excluded from both numerator and denominator (denominator filters on candidate-driven outcomes only).</li>
+<li><strong>Owner</strong>: People Analytics; reconciled with Recruiting Ops.</li>
+</ul>
+<h4>13.2.9 (Phase 3) Engagement score (survey)</h4>
+<ul>
+<li><strong>Definition</strong>: Mean response (1–5 scale) for the engagement question(s) defined by the survey vendor, aggregated per slice.</li>
+<li><strong>Suppression</strong>: any slice with fewer than k=5 respondents returns NULL with <code>suppressed_reason=&#39;below_threshold&#39;</code>.</li>
+<li><strong>Owner</strong>: People Analytics, in coordination with the survey vendor&#39;s defined methodology.</li>
+</ul>
+<h3>13.3 MetricFlow YAML example</h3>
+<pre><code class="language-yaml">semantic_models:
+  - name: workforce
+    model: ref(&#39;mart_workforce_metrics_daily&#39;)
+    entities:
+      - name: employee
+        type: foreign
+        expr: employee_key
+      - name: department
+        type: foreign
+        expr: department_key
+    dimensions:
+      - name: snapshot_date
+        type: time
+        type_params:
+          time_granularity: day
+      - name: worker_type
+        type: categorical
+      - name: employment_status
+        type: categorical
+    measures:
+      - name: active_employees
+        agg: count_distinct
+        expr: case when employment_status = &#39;ACTIVE&#39; and is_employee then employee_key end
+      - name: terminations
+        agg: count
+        expr: case when event_type = &#39;TERMINATION&#39; then 1 end
+
+metrics:
+  - name: active_headcount
+    type: simple
+    type_params:
+      measure: active_employees
+  - name: voluntary_attrition_rate_annualised
+    type: ratio
+    type_params:
+      numerator: voluntary_terminations
+      denominator: average_active_headcount
+    filter: |
+      {{ Dimension(&#39;employee__is_employee&#39;) }} = true
+</code></pre>
+<hr>
+<h2>14. Example: Resolving a Real Business Question End-to-End</h2>
+<blockquote>
+<p><em>&quot;What was voluntary attrition for the Engineering org over the last 12 months, by manager (depth ≤ 2 from the CTO), with regrettable attrition called out separately?&quot;</em></p>
+</blockquote>
+<p>This is the kind of question that lands in a People Analytics inbox every Monday morning. Here is how the model resolves it.</p>
+<pre><code class="language-sql">with eng_managers as (
+    select distinct
+        ancestor_employee_key as manager_employee_key
+    from {{ ref(&#39;dim_manager_chain&#39;) }} mc
+    join {{ ref(&#39;dim_employee_profile_scd&#39;) }} prof
+      on mc.ancestor_employee_key = prof.employee_key
+    where mc.snapshot_date = current_date
+      and prof.department_path like &#39;%Engineering%&#39;
+      and mc.depth &lt;= 2
+      and prof.valid_from_date &lt;= current_date
+      and coalesce(prof.valid_to_date, &#39;2999-12-31&#39;) &gt; current_date
+),
+
+terms as (
+    select
+        e.event_id,
+        e.employee_key,
+        e.effective_date,
+        e.termination_reason_category,   -- voluntary | involuntary
+        e.is_regrettable,                -- pre-computed flag
+        prof.manager_employee_key,
+        prof.department_key
+    from {{ ref(&#39;fact_employment_event&#39;) }} e
+    join {{ ref(&#39;dim_employee_profile_scd&#39;) }} prof
+      on prof.employee_key = e.employee_key
+     and e.effective_date between prof.valid_from_date
+                              and coalesce(prof.valid_to_date, &#39;2999-12-31&#39;)
+    where e.event_type = &#39;TERMINATION&#39;
+      and e.effective_date &gt;= dateadd(month, -12, current_date)
+),
+
+avg_hc as (
+    select
+        prof.manager_employee_key,
+        avg(case when prof.employment_status = &#39;ACTIVE&#39; then 1.0 else 0.0 end)
+            * count(distinct prof.employee_key) as avg_active_headcount
+    from {{ ref(&#39;fact_headcount_snapshot_daily&#39;) }} prof
+    where prof.snapshot_date &gt;= dateadd(month, -12, current_date)
+    group by 1
+)
+
+select
+    m.manager_employee_key,
+    e.full_name as manager_name,
+    avg_hc.avg_active_headcount,
+    count(*) filter (where t.termination_reason_category = &#39;voluntary&#39;)
+        as voluntary_terms,
+    count(*) filter (where t.termination_reason_category = &#39;voluntary&#39; and t.is_regrettable)
+        as regrettable_voluntary_terms,
+    safe_divide(
+        count(*) filter (where t.termination_reason_category = &#39;voluntary&#39;),
+        avg_hc.avg_active_headcount
+    ) as voluntary_attrition_rate_annualised
+from eng_managers m
+left join terms t   on t.manager_employee_key = m.manager_employee_key
+left join avg_hc    on avg_hc.manager_employee_key = m.manager_employee_key
+left join {{ ref(&#39;dim_employee&#39;) }} e
+       on e.employee_key = m.manager_employee_key
+group by 1, 2, 3, avg_hc.avg_active_headcount
+order by voluntary_attrition_rate_annualised desc nulls last;
+</code></pre>
+<p>Notes that justify the design:</p>
+<ul>
+<li>The query joins <code>fact_employment_event</code> to <em>historical</em> <code>dim_employee_profile_scd</code> so the termination is attributed to the org the person was in <em>at the time of leaving</em>, not to where the role has since moved. This is the SCD2 + effective-dating payoff.</li>
+<li>The manager scoping uses the recursive <code>dim_manager_chain</code>. Without it, &quot;engineering org under the CTO&quot; devolves into hand-maintained department lists.</li>
+<li>The denominator uses average active headcount, consistent with the metric definition in §13. Any consumer reproducing the metric another way produces a different number; the semantic layer prevents that.</li>
+<li>Voluntary vs regrettable is a single flag on <code>fact_employment_event</code>, populated by an upstream rule whose definition is reviewed quarterly with HR.</li>
+</ul>
+<hr>
+<h2>15. AI-Assisted Development Practice</h2>
+<p>This codebase is built with explicit, deliberate use of AI assistants (Copilot CLI, IDE-integrated agents, model-backed code review). The practice is not &quot;let AI write the code&quot;; it is &quot;use AI where it accelerates, refuse it where it would obscure.&quot;</p>
+<table>
+<thead>
+<tr>
+<th>Where AI helps</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Boilerplate and scaffolding</td>
+<td>dbt YAML, Airflow DAG skeletons, test stubs, repetitive SQL — fast and easy to verify</td>
+</tr>
+<tr>
+<td>Documentation drafts</td>
+<td>Generating first-pass column descriptions and model docs from SQL, reviewed and edited by the engineer</td>
+</tr>
+<tr>
+<td>Stress-testing logic</td>
+<td>Asking a model to enumerate edge cases for a metric definition or an identity-resolution rule, then writing tests for the ones that matter</td>
+</tr>
+<tr>
+<td>Translating across languages</td>
+<td>Porting a Python extractor pattern to a dbt macro idiom, etc.</td>
+</tr>
+<tr>
+<td>Error triage</td>
+<td>Pasting a stack trace + relevant code and asking for hypotheses; faster than scrolling docs</td>
+</tr>
+<tr>
+<td>Pull request review augmentation</td>
+<td>A second pair of eyes catching obvious issues before human review</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>Where AI is refused</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Identity merge decisions</td>
+<td>A bad merge corrupts history. Decisions are deterministic and human-reviewed.</td>
+</tr>
+<tr>
+<td>Privacy and access control rules</td>
+<td>Stakes too high; explicit, written rules only.</td>
+</tr>
+<tr>
+<td>Metric definitions that are negotiated with the business</td>
+<td>The whole point is shared agreement. AI can suggest; humans agree.</td>
+</tr>
+<tr>
+<td>Reading sensitive data into model context</td>
+<td>Schema and types only; never live PII or compensation.</td>
+</tr>
+<tr>
+<td>Anything where the model&#39;s confidence is unverifiable</td>
+<td>If we can&#39;t test it, we don&#39;t ship it.</td>
+</tr>
+</tbody></table>
+<p>The repository contains a <code>agent_files/instructions.md</code> that codifies this stance for any AI agent working in the codebase, including conventions, refused tasks, and the boot sequence the agent follows when starting a session.</p>
+<hr>
+<h2>16. Tradeoffs and Where This Design Doesn&#39;t Apply</h2>
+<p>A senior reviewer should be able to see where this design <em>stops working</em>. The following limits are deliberate.</p>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>At what scale or condition the design needs revisiting</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Daily full HR snapshot</td>
+<td>Above ~50,000 employees the snapshot table becomes large enough that incremental CDC is preferable. Workday&#39;s <code>Workday In/Out Effective</code> date filtering or change-detection on RaaS would be the next move.</td>
+</tr>
+<tr>
+<td>Snowflake</td>
+<td>At very large scale (&gt;&gt;10M rows in <code>fact_headcount_snapshot_daily</code>) the design holds, but partitioning, clustering keys, and selective materialisation matter more. The model is portable to BigQuery (replace masking/row-access with column-level security and authorised views) at higher refactor cost.</td>
+</tr>
+<tr>
+<td>Deterministic identity matching</td>
+<td>Below ~100 ambiguous cases per quarter the manual queue is fine. Above that, semi-automated matching (probabilistic with human-in-the-loop) is required. The bridge tables are designed to absorb that change without restructuring.</td>
+</tr>
+<tr>
+<td>Single ATS</td>
+<td>Multiple concurrent ATSs (e.g., during an acquisition) require namespacing in <code>bridge_person_source</code> and an explicit precedence rule. Already supported by the schema; not exercised in MVP.</td>
+</tr>
+<tr>
+<td>Survey k=5 threshold</td>
+<td>Highly sensitive items (mental health, harassment) need a stricter k or organisation-only reporting. The design exposes the threshold as a metric parameter.</td>
+</tr>
+<tr>
+<td>Single-warehouse design</td>
+<td>Genuinely global organisations with strict data residency may need per-region warehouses with replicated metric layers. Out of scope for MVP.</td>
+</tr>
+<tr>
+<td>dbt semantic layer</td>
+<td>If the BI tool is Looker and LookML is the existing source of truth, the metric layer should be in LookML, not duplicated. The design is opinionated about <em>having</em> a single semantic layer; it is less opinionated about which one.</td>
+</tr>
+<tr>
+<td>Daily cadence on HR</td>
+<td>True real-time HR analytics (on-call rosters, compliance triggers) needs a streaming layer that this design does not include. Phase 2 webhook ingestion handles recruiting near-real-time but not HR.</td>
+</tr>
+</tbody></table>
+<p>Stating limits like this is itself part of the design. A model that <em>claims</em> to scale infinitely is a model that has not been honestly reviewed.</p>
+<hr>
+<h2>17. Open Questions and Limitations</h2>
+<p>The following remain explicitly <strong>unspecified</strong> in this document and must be resolved during implementation review with stakeholders:</p>
+<ul>
+<li><strong>Workday tenant coverage.</strong> Final worker, organisation, position, and compensation field inventory available via REST/RaaS at the production tenant. Public material confirms the access patterns; only tenant access confirms the field set.</li>
+<li><strong>Survey privacy threshold and suppression policy.</strong> Defaulted to k=5 in this document; final value (and per-question overrides) is an organisational policy decision.</li>
+<li><strong>Compensation visibility.</strong> Which roles, what level of detail, and whether individual-level compensation appears in any non-restricted mart, are decisions for HR/Comp leadership.</li>
+<li><strong>Equity and payroll source integration.</strong> Out of scope for this document; the model can absorb both as additional sources in Phase 3+.</li>
+<li><strong>Survey vendor.</strong> Qualtrics, Glint, and Culture Amp are all common; the integration shape (REST + webhooks vs scheduled SFTP) is vendor-specific.</li>
+<li><strong>Workforce planning source.</strong> Anaplan, Pigment, Adaptive, or spreadsheet — the future planning phase needs a defined source of plan data.</li>
+<li><strong>BI tool.</strong> The semantic layer is tool-agnostic by design, but the operational choice of Looker vs Tableau vs Hex vs Mode affects the publication mechanics.</li>
+</ul>
+<hr>
+<h2>18. Primary Sources and References</h2>
+<p>The following public references informed the design. Vendor docs evolve; the design is robust to typical refinements (new endpoints, expanded scopes) but sensitive to fundamental contract changes.</p>
+<p><strong>Workday</strong></p>
+<ul>
+<li>Workday Reports-as-a-Service (RaaS) custom report exposure pattern.</li>
+<li>Workday Web Services SOAP <code>Get_Workers</code> operation.</li>
+<li>Workday REST API documentation (HCM coverage is partial and tenant-dependent).</li>
+</ul>
+<p><strong>Ashby</strong></p>
+<ul>
+<li>Ashby API documentation, including pagination (<code>nextCursor</code>), incremental sync (<code>syncToken</code>), and signed webhooks (<code>Ashby-Signature</code>, <code>webhookActionId</code>).</li>
+</ul>
+<p><strong>Greenhouse</strong></p>
+<ul>
+<li>Greenhouse Harvest API reference, including HTTP Basic auth with API keys.</li>
+<li>Greenhouse Recruiting webhooks reference, including <code>Greenhouse-Event-ID</code> and HMAC-SHA256 signature verification.</li>
+</ul>
+<p><strong>dbt</strong></p>
+<ul>
+<li>dbt sources, tests, snapshots, semantic models, and source freshness documentation.</li>
+<li>MetricFlow specification.</li>
+</ul>
+<p><strong>Snowflake</strong></p>
+<ul>
+<li><code>COPY INTO</code> reference.</li>
+<li><code>MERGE</code> reference.</li>
+<li>Access control overview, masking policies, row access policies.</li>
+<li><code>ACCESS_HISTORY</code> view.</li>
+</ul>
+<p><strong>Airflow</strong></p>
+<ul>
+<li>Apache Airflow DAG concepts and best practices.</li>
+</ul>
+<p><strong>Privacy</strong></p>
+<ul>
+<li>PIPEDA (Canada).</li>
+<li>Quebec Law 25 (Bill 64).</li>
+<li>CCPA / CPRA.</li>
+<li>GDPR.</li>
+<li>US EEOC EEO-1 reporting reference.</li>
+</ul>
+<hr>
+<p><em>End of design document.</em></p>
+
+</main>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+  const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: isDark ? "dark" : "default",
+    securityLevel: "loose",
+    flowchart: { htmlLabels: true, curve: "basis" },
+  });
+</script>
+</body>
+</html>

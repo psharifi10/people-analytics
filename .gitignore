@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.eggs/
+*.egg-info/
+*.egg
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# uv
+.uv/
+
+# dbt
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
+dbt_project/.user.yml
+profiles.yml
+
+# DuckDB warehouse files
+*.duckdb
+*.duckdb.wal
+warehouse/
+
+# Synthetic data (regenerable)
+sample_data/generated/
+
+# Documentation build artefacts
+documentation/node_modules/
+documentation/package*.json
+documentation/build_html.js
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Agent session memory (private working notes)
+agent_files/
+
+# Secrets
+.env
+*.pem
+*.p8
+secrets/

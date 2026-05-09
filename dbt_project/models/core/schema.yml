@@ -1,0 +1,315 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: >
+      Calendar spine 2020-01-01 → 2030-12-31. Drives every point-in-time and
+      time-series query. Refresh once per year is sufficient.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      refresh_cadence: yearly
+      severity: standard
+      data_classification: internal
+    columns:
+      - name: date_day
+        description: "The calendar date itself (one row per day)."
+        tests: [unique, not_null]
+      - name: year_number
+        description: "Four-digit year."
+      - name: quarter_number
+        description: "Quarter 1–4."
+      - name: month_number
+        description: "Month 1–12."
+      - name: first_day_of_month
+        description: "Start of the month containing this date, convenient for monthly group-bys."
+
+  - name: dim_person
+    description: >
+      Conformed Person dimension. **Grain: one row per real-world human.**
+      Survives rehires (a rehire creates a new `dim_employee` row but reuses
+      the same `dim_person` row). Identity-resolution gate keeps unsafe merges
+      out of this dimension; ambiguous matches go to `person_resolution_case`.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      refresh_cadence: daily_06_utc
+      severity: critical
+      data_classification: confidential
+      design_doc_section: "Section 4.1 three-key identity"
+    columns:
+      - name: person_key
+        description: "Surrogate key (md5 of person_external_id). Joins from facts go through this."
+        tests: [unique, not_null]
+      - name: person_external_id
+        description: "Natural key from the source HRIS."
+        meta: { pii: identifier }
+        tests: [unique, not_null]
+      - name: first_name
+        meta: { pii: name }
+      - name: last_name
+        meta: { pii: name }
+      - name: personal_email
+        meta: { pii: email_personal }
+      - name: worker_ids_json
+        description: "JSON array of every worker_id ever attached to this person."
+      - name: source_updated_at
+      - name: ingested_at_utc
+      - name: ingested_run_id
+        description: "Lineage anchor. Use to trace this row back to the raw record that produced it."
+        tests: [not_null]
+
+  - name: dim_employee
+    description: >
+      Employee dimension. **Grain: one row per `worker_id` (one employment
+      stint).** A rehired person produces a second `dim_employee` row.
+      Holds *current-state* attributes (department, title, manager) for fast
+      "latest" queries; for time-travel use `dim_employee_profile_scd`.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      refresh_cadence: daily_06_utc
+      severity: critical
+      data_classification: confidential
+      design_doc_section: "Section 4.1 three-key identity"
+    columns:
+      - name: employee_key
+        description: "Surrogate key (md5 of worker_id)."
+        tests: [unique, not_null]
+      - name: person_key
+        description: "FK to dim_person; identifies the human."
+        tests:
+          - not_null
+          - relationships: { to: ref('dim_person'), field: person_key }
+      - name: worker_id
+        description: "Natural key from HRIS."
+        tests: [unique, not_null]
+      - name: person_external_id
+        meta: { pii: identifier }
+      - name: first_name
+        meta: { pii: name }
+      - name: last_name
+        meta: { pii: name }
+      - name: work_email
+        meta: { pii: email_work }
+      - name: hire_date
+      - name: termination_date
+      - name: termination_reason
+      - name: is_currently_employed
+        description: "Boolean, `termination_date IS NULL`. Indexed-equivalent filter for active rosters."
+      - name: current_department
+      - name: current_function
+      - name: current_job_title
+      - name: current_job_level
+      - name: current_manager_worker_id
+      - name: current_manager_employee_key
+        description: "Surrogate FK derived from current_manager_worker_id."
+      - name: current_worker_type
+      - name: current_fte
+      - name: current_location_city
+      - name: current_location_region
+      - name: current_location_country
+      - name: source_updated_at
+      - name: ingested_at_utc
+      - name: ingested_run_id
+        description: "Lineage anchor."
+        tests: [not_null]
+
+  - name: dim_employment_episode
+    description: >
+      Employment episode dimension. **Grain: one row per contiguous stint.**
+      A rehire creates a new episode under the same person. Used for tenure
+      math and "stint-level" attrition where multi-stint employees should be
+      counted once per stint.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      refresh_cadence: daily_06_utc
+      severity: critical
+      data_classification: confidential
+      design_doc_section: "Section 4.2 episodes"
+    columns:
+      - name: employment_episode_key
+        description: "Surrogate key (md5 of worker_id + hire_date)."
+        tests: [unique, not_null]
+      - name: employee_key
+        description: "FK to dim_employee."
+        tests:
+          - not_null
+          - relationships: { to: ref('dim_employee'), field: employee_key }
+      - name: person_key
+        description: "FK to dim_person."
+      - name: worker_id
+      - name: person_external_id
+      - name: episode_number
+        description: "1 for first stint, 2 for second (rehire), etc."
+        tests: [not_null]
+      - name: hire_date
+      - name: termination_date
+      - name: termination_reason
+      - name: tenure_days
+        description: "termination_date − hire_date (or current_date − hire_date if active)."
+      - name: is_active_episode
+        description: "Boolean, `termination_date IS NULL`."
+      - name: ingested_run_id
+        description: "Lineage anchor."
+        tests: [not_null]
+
+  - name: dim_employee_profile_scd
+    description: >
+      Slowly Changing Dimension Type 2 of employee profile attributes.
+      **Grain: one row per `(worker_id, effective_date)`.** Critical: SCD2
+      boundaries are driven by `effective_date` (real-world), NOT by
+      `recorded_at_utc` (warehouse processing time). Back-dated changes are
+      placed at their real effective date so as-of queries get correct answers.
+      Use `valid_from_date` / `valid_to_date` for point-in-time joins.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      refresh_cadence: daily_06_utc
+      severity: critical
+      data_classification: confidential
+      design_doc_section: "Section 8.1 SCD2 by effective_date"
+    columns:
+      - name: employee_profile_key
+        description: "Surrogate (md5 of worker_id + effective_date)."
+        tests: [unique, not_null]
+      - name: employee_key
+        tests:
+          - not_null
+          - relationships: { to: ref('dim_employee'), field: employee_key }
+      - name: worker_id
+      - name: person_external_id
+        meta: { pii: identifier }
+      - name: version_number
+        description: "1, 2, 3 ... ordered by effective_date."
+      - name: valid_from_date
+        description: "Inclusive start of this version's validity."
+        tests: [not_null]
+      - name: valid_to_date
+        description: "Exclusive end. NULL on the current version."
+      - name: is_current
+        description: "Boolean shortcut for `valid_to_date IS NULL`."
+      - name: department
+      - name: function_name
+      - name: job_title
+      - name: job_level
+      - name: manager_worker_id
+      - name: manager_employee_key
+      - name: worker_type
+      - name: fte
+      - name: location_city
+      - name: location_region
+      - name: location_country
+      - name: version_event_type
+        description: "Event that produced this version."
+        tests:
+          - accepted_values:
+              values: [hire, rehire, promotion, transfer, lateral, termination]
+      - name: recorded_at_utc
+        description: "When the source system processed this version. Distinct from `valid_from_date`."
+      - name: ingested_run_id
+        description: "Lineage anchor."
+        tests: [not_null]
+
+  - name: fact_employment_event
+    description: >
+      Append-only **transaction fact** of every HR event. Use this, not the
+      snapshot fact, to count hires, terms, promotions, etc.
+      Snapshot facts answer "how many?", transaction facts answer
+      "how often did X happen?".
+    meta:
+      owner: people-analytics-team
+      layer: core
+      refresh_cadence: daily_06_utc
+      severity: critical
+      data_classification: internal
+      design_doc_section: "Section 5.2 fact tables"
+    columns:
+      - name: employment_event_key
+        description: "Surrogate (md5 of event_id)."
+        tests: [unique, not_null]
+      - name: employee_key
+        tests:
+          - relationships: { to: ref('dim_employee'), field: employee_key }
+      - name: person_key
+      - name: event_id
+      - name: worker_id
+      - name: person_external_id
+      - name: event_type
+        tests:
+          - accepted_values:
+              values: [hire, rehire, promotion, transfer, lateral, termination]
+      - name: effective_date
+        description: "Real-world date of the event."
+      - name: department
+      - name: function_name
+      - name: job_title
+      - name: job_level
+      - name: manager_worker_id
+      - name: manager_employee_key
+      - name: termination_reason
+      - name: recorded_at_utc
+      - name: ingested_run_id
+        description: "Lineage anchor."
+        tests: [not_null]
+
+  - name: fact_headcount_snapshot_daily
+    description: >
+      **Periodic snapshot fact**, `(date × active_employee)`. One row per
+      employee per day they were active. Built by joining the `dim_date`
+      spine to `dim_employee_profile_scd` (point-in-time) filtered to active
+      employment episodes. Use for "how many?" / span-of-control / org-pyramid
+      queries. Does NOT include terminated employees on their term date.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      refresh_cadence: daily_06_utc
+      severity: important
+      data_classification: internal
+      design_doc_section: "Section 5.2 fact tables"
+    columns:
+      - name: snapshot_date
+        description: "Calendar date of the snapshot row."
+        tests: [not_null]
+      - name: employee_key
+        tests: [not_null]
+      - name: employee_profile_key
+        description: "Which SCD2 profile version was active on this date."
+      - name: employment_episode_key
+      - name: worker_id
+      - name: person_external_id
+      - name: department
+      - name: function_name
+      - name: job_title
+      - name: job_level
+      - name: manager_worker_id
+      - name: manager_employee_key
+      - name: worker_type
+      - name: fte
+        description: "Full-time-equivalent fraction on this date."
+        tests: [not_null]
+      - name: location_country
+      - name: episode_number
+      - name: hire_date
+      - name: termination_date
+
+  - name: fact_manager_chain_daily
+    description: >
+      Manager hierarchy flattened via recursive CTE, for each
+      `(snapshot_date, employee, ancestor)` triple records the depth.
+      Powers org-pyramid and "all reports below VP X" queries without
+      forcing every analyst to write a recursive CTE. Depth capped at 20.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      refresh_cadence: daily_06_utc
+      severity: important
+      data_classification: internal
+    columns:
+      - name: snapshot_date
+      - name: employee_key
+      - name: ancestor_employee_key
+      - name: depth
+        description: "1 = direct manager, 2 = grand-manager, etc."
+        tests: [not_null]

@@ -1,0 +1,56 @@
+version: 2
+
+models:
+  - name: stg_hris__workers
+    description: >
+      Staged HRIS workers. Pass-through over `base_hris__workers` (base already
+      deduplicates by source_record_id). Exists so all downstream `core/`
+      models depend on `staging` rather than `base`, giving us a swap-point
+      should source-shape concerns ever need a staging-only fix.
+    meta:
+      owner: people-analytics-team
+      layer: staging
+      refresh_cadence: daily_06_utc
+      severity: standard
+      data_classification: confidential
+
+  - name: stg_hris__profile_versions
+    description: >
+      Staged profile versions. Adds a second deduplication step keyed on
+      `(worker_id, effective_date)` because the source can emit multiple
+      records for the same effective date when corrections are reposted.
+      Surviving row is the latest by `source_updated_at` then `ingested_at_utc`.
+    meta:
+      owner: people-analytics-team
+      layer: staging
+      refresh_cadence: daily_06_utc
+      severity: standard
+      data_classification: internal
+    columns:
+      - name: profile_version_id
+        tests: [not_null]
+      - name: worker_id
+        tests: [not_null]
+      - name: effective_date
+        tests: [not_null]
+      - name: ingested_run_id
+        description: "Lineage anchor, propagated from base."
+        tests: [not_null]
+
+  - name: stg_hris__persons
+    description: "Staged persons. Pass-through over `base_hris__persons`."
+    meta:
+      owner: people-analytics-team
+      layer: staging
+      refresh_cadence: daily_06_utc
+      severity: standard
+      data_classification: confidential
+
+  - name: stg_hris__employment_events
+    description: "Staged HR events. Pass-through over `base_hris__employment_events`."
+    meta:
+      owner: people-analytics-team
+      layer: staging
+      refresh_cadence: daily_06_utc
+      severity: important
+      data_classification: internal

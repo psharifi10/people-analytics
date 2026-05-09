@@ -1,0 +1,75 @@
+version: 2
+
+sources:
+  - name: raw_hris
+    description: >
+      Raw landing zone for the Workday-shaped HRIS extractor. Append-only , 
+      every row preserves the source payload byte-for-byte plus audit
+      metadata columns (`_ingested_at_utc`, `_run_id`, `_payload_hash`,
+      etc.). Loaded by `extractors/hris_workday/cli.py`.
+    schema: raw
+    meta:
+      owner: people-analytics-team
+      source_system: hris_workday
+      data_classification: confidential
+      retention_days: 2555  # 7 years
+    tables:
+      - name: hris_workday__workers
+        description: >
+          Worker records, one row per worker_id per extractor run. Append-only.
+          Downstream `base_hris__workers` deduplicates to one row per worker_id.
+        loaded_at_field: _ingested_at_utc
+        freshness:
+          warn_after: { count: 36, period: hour }
+          error_after: { count: 72, period: hour }
+        columns:
+          - name: _source_record_id
+            description: "Workday `worker_id`, natural key."
+            tests: [not_null]
+          - name: _payload_hash
+            description: "sha256 of the source row; enables idempotent dedup."
+          - name: _run_id
+            description: "UUID of the extractor run that landed this row."
+          - name: _ingested_at_utc
+            description: "When our extractor wrote this row."
+          - name: raw_payload
+            description: "Verbatim source JSON. Allows re-deriving any downstream model without re-fetching."
+
+      - name: hris_workday__profile_versions
+        description: >
+          Effective-dated profile snapshots (one per `worker_id × effective_date`).
+          Drives the SCD2 employee profile dimension. Append-only.
+        loaded_at_field: _ingested_at_utc
+        freshness:
+          warn_after: { count: 36, period: hour }
+          error_after: { count: 72, period: hour }
+        columns:
+          - name: _source_record_id
+            description: "Synthetic id `worker_id|effective_date`."
+            tests: [not_null]
+
+      - name: hris_workday__persons
+        description: >
+          Person-level records, links rehires under one identity. One row per
+          person_external_id per extractor run.
+        loaded_at_field: _ingested_at_utc
+        freshness:
+          warn_after: { count: 36, period: hour }
+          error_after: { count: 72, period: hour }
+        columns:
+          - name: _source_record_id
+            description: "Workday `person_external_id`."
+            tests: [not_null]
+
+      - name: hris_workday__employment_events
+        description: >
+          Append-only event stream of all HR transactions:
+          hire / rehire / promotion / transfer / lateral / termination.
+        loaded_at_field: _ingested_at_utc
+        freshness:
+          warn_after: { count: 36, period: hour }
+          error_after: { count: 72, period: hour }
+        columns:
+          - name: _source_record_id
+            description: "Workday `event_id`."
+            tests: [not_null]

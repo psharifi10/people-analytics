@@ -1,0 +1,194 @@
+version: 2
+
+models:
+  - name: base_hris__workers
+    description: >
+      Typed view over `raw.hris_workday__workers`. One row per `worker_id`,
+      always the latest version per source_record_id (deduped by
+      `_source_updated_at` then `_ingested_at_utc`). Carries `ingested_run_id`
+      forward for lineage. PII columns are exposed but should be masked at the
+      role level in production (Snowflake masking policies).
+    meta:
+      owner: people-analytics-team
+      layer: base
+      refresh_cadence: daily_06_utc
+      severity: standard
+      data_classification: confidential
+    columns:
+      - name: worker_id
+        description: "Workday natural key, the employment instance identifier."
+        tests: [not_null, unique]
+      - name: person_external_id
+        description: "Workday Person identifier. Survives rehires."
+        meta: { pii: identifier }
+        tests: [not_null]
+      - name: first_name
+        description: "Worker's first name."
+        meta: { pii: name }
+      - name: last_name
+        description: "Worker's last name."
+        meta: { pii: name }
+      - name: work_email
+        description: "Company email address."
+        meta: { pii: email_work }
+      - name: personal_email
+        description: "Personal email; high sensitivity."
+        meta: { pii: email_personal }
+      - name: hire_date
+        description: "Date this worker started this stint."
+        tests: [not_null]
+      - name: termination_date
+        description: "Date this worker's employment ended; null while active."
+      - name: termination_reason
+        description: "Free-text reason recorded at termination."
+      - name: current_department
+        description: "Department on the most recent profile version."
+      - name: current_function
+        description: "Functional area (e.g. Engineering, Sales)."
+      - name: current_job_title
+        description: "Current job title."
+      - name: current_job_level
+        description: "Career level (e.g. L4, IC2, M3)."
+      - name: current_manager_worker_id
+        description: "Manager's `worker_id` on the latest profile version."
+      - name: current_worker_type
+        description: "full_time / part_time / contractor / intern / contingent."
+      - name: current_fte
+        description: "Full-time-equivalent fraction (0.0–1.0)."
+      - name: current_location_city
+        description: "City of current work location."
+      - name: current_location_region
+        description: "State / province of current work location."
+      - name: current_location_country
+        description: "ISO country of current work location."
+      - name: is_active_in_source
+        description: "Boolean from source: was this worker flagged active at extract time?"
+      - name: source_updated_at
+        description: "When the source system last modified the record."
+      - name: ingested_at_utc
+        description: "When our extractor landed the row in raw."
+      - name: ingested_run_id
+        description: "UUID of the extractor run that landed the surviving raw row. Lineage anchor for audit."
+        tests: [not_null]
+
+  - name: base_hris__profile_versions
+    description: >
+      Typed view over `raw.hris_workday__profile_versions`. One row per
+      effective-dated profile snapshot (department / title / manager / etc.).
+      Drives `dim_employee_profile_scd` and the `fact_headcount_snapshot_daily`
+      dimensional point-in-time joins.
+    meta:
+      owner: people-analytics-team
+      layer: base
+      refresh_cadence: daily_06_utc
+      severity: standard
+      data_classification: internal
+    columns:
+      - name: profile_version_id
+        description: "Synthetic key `worker_id|effective_date`."
+        tests: [not_null]
+      - name: worker_id
+        description: "Owning worker."
+        tests: [not_null]
+      - name: person_external_id
+        description: "Person identifier (denormalised for convenience)."
+      - name: effective_date
+        description: "Real-world date this profile version became active. Drives SCD2."
+        tests: [not_null]
+      - name: department
+        description: "Department on this version."
+      - name: function_name
+        description: "Functional area on this version."
+      - name: job_title
+        description: "Job title on this version."
+      - name: job_level
+        description: "Career level on this version."
+      - name: manager_worker_id
+        description: "Manager (by worker_id) on this version."
+      - name: worker_type
+        description: "Worker type on this version."
+      - name: fte
+        description: "FTE fraction on this version."
+      - name: location_city
+        description: "Work-location city on this version."
+      - name: location_region
+        description: "Work-location region on this version."
+      - name: location_country
+        description: "Work-location country on this version."
+      - name: event_type
+        description: "Triggering event for this version (hire / promotion / transfer / lateral / etc.)."
+      - name: source_updated_at
+        description: "When the source system last modified this version."
+      - name: ingested_at_utc
+        description: "When our extractor landed it."
+      - name: ingested_run_id
+        description: "Lineage anchor: extractor run that landed the surviving raw row."
+        tests: [not_null]
+
+  - name: base_hris__persons
+    description: >
+      Typed view over `raw.hris_workday__persons`. Person-level identity that
+      survives rehires (one Person can have multiple Workers).
+    meta:
+      owner: people-analytics-team
+      layer: base
+      refresh_cadence: daily_06_utc
+      severity: standard
+      data_classification: confidential
+    columns:
+      - name: person_external_id
+        description: "Workday Person identifier."
+        meta: { pii: identifier }
+        tests: [not_null, unique]
+      - name: first_name
+        meta: { pii: name }
+      - name: last_name
+        meta: { pii: name }
+      - name: personal_email
+        description: "Person-level personal email."
+        meta: { pii: email_personal }
+      - name: worker_ids_json
+        description: "JSON array of worker_ids belonging to this person."
+      - name: source_updated_at
+      - name: ingested_at_utc
+      - name: ingested_run_id
+        description: "Lineage anchor."
+        tests: [not_null]
+
+  - name: base_hris__employment_events
+    description: >
+      Typed view over `raw.hris_workday__employment_events`. Append-only event
+      stream, every hire / promotion / transfer / lateral / termination /
+      rehire ever recorded. Source of truth for transaction-fact metrics.
+    meta:
+      owner: people-analytics-team
+      layer: base
+      refresh_cadence: daily_06_utc
+      severity: important
+      data_classification: internal
+    columns:
+      - name: event_id
+        description: "Source-system event identifier."
+        tests: [not_null, unique]
+      - name: worker_id
+        tests: [not_null]
+      - name: person_external_id
+      - name: event_type
+        description: "hire | rehire | promotion | transfer | lateral | termination."
+        tests:
+          - accepted_values:
+              values: [hire, rehire, promotion, transfer, lateral, termination]
+      - name: effective_date
+        description: "Real-world date the event occurred."
+        tests: [not_null]
+      - name: department
+      - name: function_name
+      - name: job_title
+      - name: job_level
+      - name: manager_worker_id
+      - name: termination_reason
+      - name: source_updated_at
+      - name: ingested_at_utc
+      - name: ingested_run_id
+        description: "Lineage anchor."
+        tests: [not_null]

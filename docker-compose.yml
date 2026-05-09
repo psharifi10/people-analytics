@@ -1,0 +1,99 @@
+# =============================================================================
+# Local Airflow stack for the People Analytics pipeline.
+#
+# Runs the same DAG you'd run in production (MWAA / Astronomer / Composer)
+# but on your laptop, against the local DuckDB warehouse.
+#
+# Usage:
+#   docker compose up airflow-init     # one-shot: creates DB schema + admin user
+#   docker compose up -d               # start scheduler + webserver
+#   open http://localhost:8080         # login: airflow / airflow
+#   docker compose down                # stop everything
+#   docker compose down -v             # ...and wipe Airflow's metadata DB
+# =============================================================================
+
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: airflow/Dockerfile
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ""
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    PYTHONPATH: /opt/airflow
+  volumes:
+    # The DAG itself.
+    - ./airflow/dags:/opt/airflow/dags
+    # The dbt project — the BashOperator does `cd /opt/airflow/dbt_project`.
+    - ./dbt_project:/opt/airflow/dbt_project
+    # The DuckDB warehouse file is shared with your host so queries you run
+    # locally (CLI, notebook) hit the same database the DAG just wrote to.
+    - ./warehouse:/opt/airflow/warehouse
+    # The synthetic data + extractor package, mounted because the DAG's
+    # PythonOperator imports `extractors.hris_workday.cli`.
+    - ./sample_data:/opt/airflow/sample_data
+    - ./extractors:/opt/airflow/extractors
+    # Airflow logs persist on the host so they survive `docker compose down`.
+    - ./airflow/logs:/opt/airflow/logs
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+    restart: always
+
+  # One-shot bootstrap container. Sets up the Airflow metadata DB schema and
+  # creates the default admin user. After it exits, you can `up -d` the rest.
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username airflow --password airflow \
+          --firstname Admin --lastname User \
+          --role Admin --email admin@example.com || true
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+volumes:
+  postgres-db-volume:

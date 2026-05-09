@@ -1,0 +1,42 @@
+name: 'people_analytics'
+version: '0.1.0'
+config-version: 2
+
+profile: 'people_analytics'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  as_of_date: "{{ run_started_at.strftime('%Y-%m-%d') }}"
+  date_spine_start: "2020-01-01"
+  date_spine_end: "2030-12-31"
+
+models:
+  people_analytics:
+    +persist_docs:
+      relation: true
+      columns: true
+    base:
+      +schema: base
+      +materialized: view
+    staging:
+      +schema: staging
+      +materialized: view
+    core:
+      +schema: core
+      +materialized: table
+    marts:
+      +schema: marts
+      +materialized: table
+    semantic:
+      +schema: semantic
+      +materialized: view

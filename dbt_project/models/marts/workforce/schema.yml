@@ -1,0 +1,54 @@
+version: 2
+
+models:
+  - name: mart_workforce_metrics_daily
+    description: >
+      Single workforce reporting mart. **Grain: one row per calendar day.**
+      Joins stocks (active headcount, FTE, headcount-by-worker-type from
+      `fact_headcount_snapshot_daily`) with flows (hires, rehires,
+      terminations, promotions, transfers from `fact_employment_event`).
+      This is the table dashboards and analysts hit, they should never
+      need to know about SCD2 or recursive CTEs to answer common questions.
+    meta:
+      owner: people-analytics-team
+      layer: marts
+      refresh_cadence: daily_06_utc
+      severity: important
+      data_classification: internal
+      consumers: ["Tableau dashboards", "metrics layer", "analyst notebooks"]
+    columns:
+      - name: date_day
+        description: "Calendar date (one row per day)."
+        tests: [unique, not_null]
+      - name: year_number
+      - name: quarter_number
+      - name: month_number
+      - name: first_day_of_month
+        description: "Start of the month containing this date, for monthly aggregations."
+      - name: active_headcount
+        description: "Count of employees active on this date (filter on `is_active_episode`)."
+        tests: [not_null]
+      - name: total_fte
+        description: "Sum of `fte` across active employees."
+      - name: full_time_headcount
+        description: "Headcount where `worker_type = 'full_time'`."
+      - name: part_time_headcount
+        description: "Headcount where `worker_type = 'part_time'`."
+      - name: contractor_headcount
+        description: "Headcount where `worker_type = 'contractor'`."
+      - name: intern_headcount
+        description: "Headcount where `worker_type = 'intern'`."
+      - name: contingent_headcount
+        description: "Headcount where `worker_type = 'contingent'`."
+      - name: hires
+        description: "Count of `event_type = 'hire'` events on this date."
+      - name: rehires
+        description: "Count of `event_type = 'rehire'` events on this date."
+      - name: terminations
+        description: "Count of `event_type = 'termination'` events on this date."
+      - name: promotions
+        description: "Count of `event_type = 'promotion'` events on this date."
+      - name: transfers
+        description: "Count of `event_type IN ('transfer','lateral')` events on this date."
+      - name: net_headcount_change
+        description: "hires + rehires − terminations."

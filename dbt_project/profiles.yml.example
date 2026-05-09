@@ -1,0 +1,23 @@
+# Reference profile — copy to ~/.dbt/profiles.yml for production.
+# Uses Snowflake key-pair auth (no passwords) per the design doc.
+
+people_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "../warehouse/people.duckdb"
+      schema: main
+      threads: 4
+    prod:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'PA_ENGINEER') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'WH_PA_DEV') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'PEOPLE_ANALYTICS') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'CORE') }}"
+      threads: 8
+      client_session_keep_alive: false
