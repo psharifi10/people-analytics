@@ -48,6 +48,9 @@ class LandingClient:
         self.con.execute("CREATE SCHEMA IF NOT EXISTS raw")
 
     def _ensure_table(self, source_system: str, source_object: str) -> str:
+        # Naming convention: raw.<source_system>__<source_object>. Double
+        # underscore is intentional - it reads cleanly and matches the dbt
+        # source() macro convention used throughout the project.
         table = f"raw.{source_system}__{source_object}"
         self.con.execute(
             f"""
@@ -81,7 +84,13 @@ class LandingClient:
         ingested_at = datetime.now(timezone.utc)
         rows: list[tuple[Any, ...]] = []
         for rec in records:
+            # The natural key from the source system. Stored as VARCHAR
+            # because record_id types vary across sources (ints, UUIDs,
+            # composite strings) - downstream casts as needed.
             rid = str(rec.get(record_id_field, ""))
+            # Source-side updated_at is what drives dbt dedup ordering.
+            # Some payloads use ISO-Z notation; normalise to +00:00 so
+            # fromisoformat accepts it on Python 3.11+.
             updated_raw = rec.get(source_updated_at_field) if source_updated_at_field else None
             updated_at = (
                 datetime.fromisoformat(updated_raw.replace("Z", "+00:00"))
@@ -106,6 +115,7 @@ class LandingClient:
             log.warning("landing.no_records", source=source_system, object=source_object)
             return 0
 
+        # Use executemany rather than per-row INSERT for ~100x throughput.
         self.con.executemany(
             f"INSERT INTO {table} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rows,

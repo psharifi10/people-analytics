@@ -38,7 +38,9 @@ from faker import Faker
 
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "generated"
 
-# Functional org tree: function -> list of departments
+# Functional org tree: function -> list of departments. Drives the synth so
+# every employee belongs to a real-looking unit. Keep narrow enough that
+# downstream group-by counts are meaningful at sample-data scale.
 ORG_TREE: dict[str, list[str]] = {
     "Engineering": ["Platform", "Product Eng", "Data", "Security"],
     "Product & Design": ["Product Mgmt", "Design"],
@@ -46,6 +48,8 @@ ORG_TREE: dict[str, list[str]] = {
     "G&A": ["People", "Finance", "Legal"],
 }
 
+# (city, region, country) tuples. Region is None for "Remote" because real
+# Workday leaves that field blank for fully-remote workers.
 LOCATIONS = [
     ("Toronto", "ON", "CA"),
     ("Vancouver", "BC", "CA"),
@@ -54,13 +58,19 @@ LOCATIONS = [
     ("Remote", None, "CA"),
 ]
 
+# Worker-type mix. Heavy full-time so the headcount story is clean.
 WORKER_TYPES = ["full_time", "part_time", "contractor", "intern", "contingent"]
 WORKER_TYPE_WEIGHTS = [0.85, 0.05, 0.06, 0.02, 0.02]
 
+# IC1-IC5 individual contributor ladder; M1-M4 management ladder.
 JOB_LEVELS = ["IC1", "IC2", "IC3", "IC4", "IC5", "M1", "M2", "M3", "M4"]
 
+# Every event_type produced by the synth. The "rehire" event is what links
+# a second Employment back to an existing Person (cross-stint identity).
 EVENT_TYPES = ["hire", "promotion", "transfer", "lateral", "termination", "rehire"]
 
+# Termination reason mix. Heavy voluntary_resignation matches reality and
+# is what makes voluntary-attrition the headline metric.
 TERMINATION_REASONS = [
     "voluntary_resignation",
     "voluntary_relocation",
@@ -308,7 +318,9 @@ class Generator:
         annual_attrition = 0.15
         annual_promotion = 0.12
         annual_transfer = 0.05
-        # Convert to per-day probabilities
+        # Convert annual rates to per-employee-per-day probabilities. With
+        # ~1000 active employees this yields ~150 terms / 120 promos / 50
+        # transfers per year -- realistic flow volumes.
         p_attrition = annual_attrition / 365
         p_promo = annual_promotion / 365
         p_transfer = annual_transfer / 365
@@ -316,28 +328,33 @@ class Generator:
         while cur <= self.today:
             actives = self._active_employments(cur)
             for emp in list(actives):
-                # Skip events on the very day of hire
+                # Skip events on the very day of hire (no one promotes on day 1)
                 if cur == emp.hire_date:
                     continue
                 roll = self.rng.random()
                 if roll < p_attrition:
                     self._terminate(emp, cur)
                     continue
+                # Independent roll: an employee can promote OR transfer but
+                # only one per day.
                 roll2 = self.rng.random()
                 if roll2 < p_promo:
                     self._promote(emp, cur)
                 elif roll2 < p_promo + p_transfer:
                     self._transfer(emp, cur)
 
-            # Backfill hires + growth: aim for ~5% headcount drift per year above attrition.
+            # Backfill hires + growth: aim for ~5% headcount drift per year
+            # above attrition. Without this the population drains over time.
             target_today = int(self.target_active * (1 + 0.05 * ((cur - self.start_date).days / 365)))
             current_active = len(self._active_employments(cur))
             deficit = target_today - current_active
-            # Spread the deficit across the year — small chance per day
+            # Spread the deficit across the year -- small chance per day so
+            # hires are sprinkled rather than batched.
             if deficit > 0 and self.rng.random() < (deficit / 365):
                 self._hire_new(cur)
 
-            # Occasional rehire: someone who terminated 6+ months ago comes back
+            # Occasional rehire: someone who terminated 6+ months ago comes back.
+            # Low probability -- rehires are rare in real data.
             if self.rng.random() < 0.0008:
                 self._maybe_rehire(cur)
 
@@ -353,13 +370,18 @@ class Generator:
 
     def _terminate(self, emp: Employment, on: date) -> None:
         # Don't terminate the CEO or VP layer (keeps the org coherent for the demo).
+        # Without this guard the synth can produce an org tree with no leaders,
+        # which breaks the manager-chain recursive CTE downstream.
         top = emp.profile_versions[-1]
         if top.job_level in {"M3", "M4"}:
             return
         emp.termination_date = on
+        # Voluntary terms dominate (weight 6 vs 1 for each other reason)
         emp.termination_reason = self.rng.choices(
             TERMINATION_REASONS, weights=[6, 1, 1, 1, 1], k=1
         )[0]
+        # Append a final ProfileVersion with event_type='termination' so the
+        # SCD2 chain has a clean closing boundary downstream.
         emp.profile_versions.append(
             ProfileVersion(
                 effective_date=on,
@@ -452,7 +474,14 @@ class Generator:
                               title=None, level=None, event_type="hire")
 
     def _maybe_rehire(self, on: date) -> None:
-        # Pick a person whose only employment ended >180d ago and was voluntary
+        """Bring back a previously-terminated person under a new worker_id.
+
+        This is what creates a Person with multiple Employments -- the
+        cross-stint identity that justifies the dim_person vs dim_employee
+        split in the warehouse.
+        """
+        # Pick a person whose only employment ended >180d ago and was voluntary.
+        # 180d gap stops "instant rehire" patterns that don't match reality.
         candidates = [
             p for p in self.persons
             if p.employments
@@ -470,18 +499,31 @@ class Generator:
             and e.profile_versions[-1].job_level.startswith("M")
         ]
         mgr = self.rng.choice(mgrs) if mgrs else None
+        # event_type='rehire' so the warehouse can distinguish first-time
+        # hires from rehires (different cohort metrics).
         self._open_employment(person, on, manager_worker_id=mgr, function=fn, department=d,
                               title=None, level=None, event_type="rehire")
 
     # --- output -------------------------------------------------------------------
 
     def _write_outputs(self) -> None:
+        """Serialise three Workday-shaped JSON payloads + a manifest.
+
+        These three payloads are what a real Workday RaaS extract would look
+        like: a workers feed (one row per stint with embedded history), a
+        persons feed (cross-stint identity), and an events feed (the change
+        history). The downstream extractor reads all three and lands them
+        flat.
+        """
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        # 1. Workers extract: one record per worker_id (employment stint), with embedded profile history.
+        # 1. Workers extract: one record per worker_id (employment stint),
+        #    with embedded profile history that the extractor will unfurl
+        #    into its own raw table.
         workers = self._build_workers_payload()
-        # 2. Persons extract: one record per person_external_id with cross-stint identity.
+        # 2. Persons extract: cross-stint identity; lets us prove rehires
+        #    collapse back to one dim_person.
         persons = self._build_persons_payload()
-        # 3. Employment events: flat list, useful for fact-event downstream model.
+        # 3. Employment events: flat list, drives fact_employment_event.
         events = self._build_events_payload()
 
         extract_ts = datetime.now(timezone.utc).isoformat()
