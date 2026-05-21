@@ -1,0 +1,89 @@
+name: Deploy dbt Docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --no-dev
+
+      - name: Generate synthetic data
+        run: uv run pa-generate-data --employees 1000 --years 3 --seed 42
+
+      - name: Generate ATS synthetic data
+        run: uv run pa-generate-ats --seed 42
+
+      - name: Extract HRIS to DuckDB
+        env:
+          PA_DUCKDB_PATH: warehouse/people.duckdb
+        run: uv run pa-extract-hris --mode file
+
+      - name: Extract ATS to DuckDB
+        env:
+          PA_DUCKDB_PATH: warehouse/people.duckdb
+        run: uv run pa-extract-ats --mode file
+
+      - name: dbt build
+        env:
+          PA_DUCKDB_PATH: warehouse/people.duckdb
+        run: |
+          uv run dbt build \
+            --project-dir dbt_project \
+            --profiles-dir dbt_project \
+            --target dev
+
+      - name: dbt docs generate
+        env:
+          PA_DUCKDB_PATH: warehouse/people.duckdb
+        run: |
+          uv run dbt docs generate \
+            --project-dir dbt_project \
+            --profiles-dir dbt_project \
+            --target dev
+
+      - name: Prepare docs site
+        run: |
+          mkdir -p _site
+          cp dbt_project/target/index.html _site/
+          cp dbt_project/target/manifest.json _site/
+          cp dbt_project/target/catalog.json _site/
+          touch _site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build-docs
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
