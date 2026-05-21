@@ -41,6 +41,7 @@ dev = [
 pa-generate-data = "scripts.generate_data:main"
 pa-generate-ats = "sample_data.generate_ats:main"
 pa-extract-hris = "extractors.hris_workday.cli:main"
+pa-extract-ats = "extractors.ats_ashby.cli:main"
 pa-setup = "scripts.setup:main"
 
 [build-system]
