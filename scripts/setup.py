@@ -36,9 +36,14 @@ def _step(label: str) -> None:
 
 
 def _run_dbt(args: list[str]) -> None:
+    # Invoke dbt as a subprocess so its CLI handles target / profile
+    # resolution. Pass --project-dir + --profiles-dir explicitly so this
+    # works whether the user is in repo root or in dbt_project/.
     cmd = ["dbt", *args, "--project-dir", str(DBT_DIR), "--profiles-dir", str(DBT_DIR)]
     click.echo(f"  $ {' '.join(cmd)}")
     env = os.environ.copy()
+    # The dbt profile reads PA_DUCKDB_PATH at parse time so warehouses can
+    # be relocated without editing profiles.yml.
     env["PA_DUCKDB_PATH"] = str(DB_PATH)
     result = subprocess.run(cmd, env=env, cwd=str(REPO_ROOT))
     if result.returncode != 0:
@@ -82,6 +87,8 @@ def main(employees: int, years: int, seed: int, reset: bool, skip_generate: bool
 
     _step("Headline metrics from mart_workforce_metrics_daily")
     con = duckdb.connect(str(DB_PATH))
+    # Skip empty days (synth fills today with zeros) so the user sees real
+    # numbers in the demo summary.
     rows = con.execute(
         """
         select date_day, active_headcount, total_fte, hires, terminations, net_headcount_change

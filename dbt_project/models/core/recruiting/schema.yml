@@ -1,0 +1,270 @@
+version: 2
+
+models:
+  - name: dim_candidate
+    description: >
+      Candidate dimension: one row per ATS candidate. Conformed to dim_person
+      via person_key when the candidate has been hired and linked to HRIS.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      domain: recruiting
+      refresh_cadence: every_4h
+      severity: critical
+      data_classification: confidential
+    columns:
+      - name: candidate_key
+        description: "Surrogate key (md5 of candidate_id)."
+        tests: [unique, not_null]
+      - name: person_key
+        description: "FK to dim_person. Enables cross-system person joins."
+      - name: candidate_id
+        description: "Ashby candidate natural key."
+        tests: [unique, not_null]
+      - name: person_external_id
+        description: "Canonical person identifier (populated when hired)."
+      - name: first_name
+        description: "Candidate first name (PII)."
+      - name: last_name
+        description: "Candidate last name (PII)."
+      - name: email
+        description: "Candidate email (PII)."
+      - name: linkedin_url
+        description: "LinkedIn profile URL."
+      - name: candidate_source
+        description: "Sourcing channel."
+      - name: ingested_run_id
+        description: "Lineage: extractor run that produced this row."
+
+  - name: dim_job_requisition
+    description: >
+      Job requisition dimension: one row per opening. Tracks the lifecycle of
+      a hiring slot from opened to filled/cancelled.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      domain: recruiting
+      refresh_cadence: every_4h
+      severity: important
+      data_classification: internal
+    columns:
+      - name: requisition_key
+        description: "Surrogate key (md5 of requisition_id)."
+        tests: [unique, not_null]
+      - name: requisition_id
+        description: "Ashby requisition natural key."
+        tests: [unique, not_null]
+      - name: job_title
+        description: "Role title."
+      - name: job_level
+        description: "Level code."
+      - name: department
+        description: "Hiring department."
+      - name: function_name
+        description: "Business function."
+      - name: opened_at
+        description: "Date requisition opened."
+        tests: [not_null]
+      - name: closed_at
+        description: "Date requisition closed (null if open)."
+      - name: status
+        description: "Current status."
+        tests:
+          - accepted_values:
+              values: ['open', 'filled', 'closed_unfilled']
+      - name: days_open
+        description: "Calendar days from opened to closed."
+      - name: ingested_run_id
+        description: "Lineage: extractor run."
+
+  - name: fact_application
+    description: >
+      Application fact: one row per candidate application to a specific
+      requisition. Core grain for funnel and conversion analytics.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      domain: recruiting
+      refresh_cadence: every_4h
+      severity: critical
+      data_classification: internal
+    columns:
+      - name: application_key
+        description: "Surrogate key (md5 of application_id)."
+        tests: [unique, not_null]
+      - name: candidate_key
+        description: "FK to dim_candidate."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_candidate')
+              field: candidate_key
+      - name: requisition_key
+        description: "FK to dim_job_requisition."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_job_requisition')
+              field: requisition_key
+      - name: application_id
+        description: "Ashby application natural key."
+        tests: [unique, not_null]
+      - name: submitted_at
+        description: "When the application was submitted."
+        tests: [not_null]
+      - name: current_stage
+        description: "Latest stage reached in the funnel."
+      - name: status
+        description: "Outcome: active, hired, rejected, withdrawn."
+        tests:
+          - accepted_values:
+              values: ['active', 'hired', 'rejected', 'withdrawn']
+      - name: is_winning
+        description: "True if this application resulted in a hire."
+      - name: days_in_funnel
+        description: "Days from submitted to closed (null if active)."
+      - name: ingested_run_id
+        description: "Lineage: extractor run."
+
+  - name: fact_application_stage_history
+    description: >
+      Stage history fact: one row per application x stage transition. Tracks
+      time spent in each stage for pipeline velocity analysis.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      domain: recruiting
+      refresh_cadence: every_4h
+      severity: important
+      data_classification: internal
+    columns:
+      - name: stage_history_key
+        description: "Surrogate key (md5 of stage_event_id)."
+        tests: [unique, not_null]
+      - name: application_key
+        description: "FK to fact_application."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('fact_application')
+              field: application_key
+      - name: candidate_key
+        description: "FK to dim_candidate."
+        tests: [not_null]
+      - name: requisition_key
+        description: "FK to dim_job_requisition."
+        tests: [not_null]
+      - name: from_stage
+        description: "Prior stage (null for initial entry)."
+      - name: to_stage
+        description: "Stage entered."
+        tests: [not_null]
+      - name: transitioned_at
+        description: "Timestamp of transition."
+        tests: [not_null]
+      - name: next_transition_at
+        description: "Timestamp of next transition (null for terminal)."
+      - name: hours_in_stage
+        description: "Hours spent in this stage before moving on."
+      - name: ingested_run_id
+        description: "Lineage: extractor run."
+
+  - name: fact_offer
+    description: >
+      Offer fact: one row per offer extended. Links to application, candidate,
+      requisition, and (if accepted) to the hired person via person_key.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      domain: recruiting
+      refresh_cadence: every_4h
+      severity: critical
+      data_classification: confidential
+    columns:
+      - name: offer_key
+        description: "Surrogate key (md5 of offer_id)."
+        tests: [unique, not_null]
+      - name: application_key
+        description: "FK to fact_application."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('fact_application')
+              field: application_key
+      - name: candidate_key
+        description: "FK to dim_candidate."
+        tests: [not_null]
+      - name: requisition_key
+        description: "FK to dim_job_requisition."
+        tests: [not_null]
+      - name: hired_person_key
+        description: "FK to dim_person (set when offer accepted and person resolved)."
+      - name: offer_id
+        description: "Ashby offer natural key."
+        tests: [unique, not_null]
+      - name: extended_at
+        description: "When the offer was sent."
+        tests: [not_null]
+      - name: responded_at
+        description: "When the candidate responded."
+      - name: status
+        description: "Offer outcome."
+        tests:
+          - accepted_values:
+              values: ['accepted', 'declined', 'expired', 'rescinded', 'pending']
+      - name: base_salary_amount
+        description: "Offered base salary (restricted)."
+      - name: days_to_respond
+        description: "Days from extended to responded."
+      - name: ingested_run_id
+        description: "Lineage: extractor run."
+
+  - name: bridge_candidate_employee
+    description: >
+      Bridge table linking ATS candidates to HRIS employees through accepted
+      offers. Enables hire-conversion and cross-system person analytics.
+    meta:
+      owner: people-analytics-team
+      layer: core
+      domain: recruiting
+      refresh_cadence: every_4h
+      severity: critical
+      data_classification: confidential
+    columns:
+      - name: candidate_employee_bridge_key
+        description: "Surrogate key (md5 of offer_id + worker_id)."
+        tests: [unique, not_null]
+      - name: candidate_key
+        description: "FK to dim_candidate."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_candidate')
+              field: candidate_key
+      - name: employee_key
+        description: "FK to dim_employee."
+        tests:
+          - relationships:
+              to: ref('dim_employee')
+              field: employee_key
+      - name: person_key
+        description: "FK to dim_person (shared identity anchor)."
+        tests: [not_null]
+      - name: requisition_key
+        description: "FK to dim_job_requisition."
+      - name: candidate_id
+        description: "ATS candidate natural key."
+      - name: worker_id
+        description: "HRIS worker natural key."
+      - name: person_external_id
+        description: "Canonical person identifier."
+      - name: hired_at
+        description: "Timestamp the offer was accepted."
+      - name: hire_date
+        description: "HRIS hire date for the matched employee record."
+      - name: days_offer_to_hris_start
+        description: "Days between offer acceptance and HRIS start. Data quality metric."
+      - name: match_method
+        description: "How the link was established (offer_acceptance)."
+      - name: match_confidence
+        description: "Confidence score of the match (1.0 for deterministic)."

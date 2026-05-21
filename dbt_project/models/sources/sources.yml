@@ -73,3 +73,77 @@ sources:
           - name: _source_record_id
             description: "Workday `event_id`."
             tests: [not_null]
+
+  - name: raw_ats
+    description: >
+      Raw landing zone for the Ashby-shaped ATS extractor. Append-only,
+      every row preserves the source payload plus audit metadata columns.
+      Loaded by `extractors/ats_ashby/cli.py`.
+    schema: raw
+    meta:
+      owner: people-analytics-team
+      source_system: ats_ashby
+      data_classification: confidential
+      retention_days: 2555
+    tables:
+      - name: ats_ashby__jobs
+        description: >
+          Job requisitions / openings. One row per requisition_id per extractor run.
+        loaded_at_field: _ingested_at_utc
+        freshness:
+          warn_after: { count: 6, period: hour }
+          error_after: { count: 24, period: hour }
+        columns:
+          - name: _source_record_id
+            description: "Ashby `requisition_id`."
+            tests: [not_null]
+
+      - name: ats_ashby__candidates
+        description: >
+          Candidate records. One row per candidate_id per extractor run.
+        loaded_at_field: _ingested_at_utc
+        freshness:
+          warn_after: { count: 6, period: hour }
+          error_after: { count: 24, period: hour }
+        columns:
+          - name: _source_record_id
+            description: "Ashby `candidate_id`."
+            tests: [not_null]
+
+      - name: ats_ashby__applications
+        description: >
+          Applications (candidate to job). One row per application_id per
+          extractor run. Stage history is unfurled into a separate table.
+        loaded_at_field: _ingested_at_utc
+        freshness:
+          warn_after: { count: 6, period: hour }
+          error_after: { count: 24, period: hour }
+        columns:
+          - name: _source_record_id
+            description: "Ashby `application_id`."
+            tests: [not_null]
+
+      - name: ats_ashby__application_stage_events
+        description: >
+          Stage transitions unfurled from application.stage_history.
+          One row per application x stage transition per extractor run.
+        loaded_at_field: _ingested_at_utc
+        freshness:
+          warn_after: { count: 6, period: hour }
+          error_after: { count: 24, period: hour }
+        columns:
+          - name: _source_record_id
+            description: "Composite: `application_id|transitioned_at|to_stage`."
+            tests: [not_null]
+
+      - name: ats_ashby__offers
+        description: >
+          Offers extended to candidates. One row per offer_id per extractor run.
+        loaded_at_field: _ingested_at_utc
+        freshness:
+          warn_after: { count: 6, period: hour }
+          error_after: { count: 24, period: hour }
+        columns:
+          - name: _source_record_id
+            description: "Ashby `offer_id`."
+            tests: [not_null]

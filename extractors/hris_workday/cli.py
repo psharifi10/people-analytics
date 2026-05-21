@@ -38,6 +38,9 @@ def run_file_mode(
     truncate_first: bool = True,
 ) -> dict[str, int]:
     """Read JSON files from ``sample_dir`` and land them into ``db_path``."""
+    # Every extraction gets a unique run_id stamped on every landed row so
+    # downstream models can trace lineage back to the exact extract that
+    # produced them (see the ingested_run_id column in core models).
     run_id = str(uuid4())
     log.info("hris.extract.start", mode="file", run_id=run_id, sample_dir=str(sample_dir))
 
@@ -45,7 +48,9 @@ def run_file_mode(
     persons_payload = json.loads((sample_dir / "workday_persons.json").read_text())
     events_payload = json.loads((sample_dir / "workday_employment_events.json").read_text())
 
-    # Derive flat profile-versions table from the worker payload's nested array.
+    # Unfurl the worker payload's nested profile_history array into its own
+    # flat table. Real Workday returns this nested too; we explode at the
+    # extractor (not in dbt) so the raw layer stays one-row-per-record.
     versions: list[dict[str, object]] = []
     workers_flat: list[dict[str, object]] = []
     extract_ts = datetime.now(timezone.utc).isoformat()
@@ -54,6 +59,7 @@ def run_file_mode(
         for v in history:
             versions.append(
                 {
+                    # Composite natural key: same worker can have many versions
                     "profile_version_id": f"{w['worker_id']}|{v['effective_date']}",
                     "worker_id": w["worker_id"],
                     "person_external_id": w["person_external_id"],
@@ -66,6 +72,9 @@ def run_file_mode(
     counts: dict[str, int] = {}
     with LandingClient(db_path) as land:
         if truncate_first:
+            # Demo mode: wipe before re-loading so re-runs are deterministic.
+            # Production would set truncate_first=False and rely on dbt
+            # incremental dedup logic instead.
             for obj in ("workers", "profile_versions", "persons", "employment_events"):
                 land.truncate(SOURCE_SYSTEM, obj)
 

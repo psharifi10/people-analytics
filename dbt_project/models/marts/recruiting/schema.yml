@@ -1,0 +1,51 @@
+version: 2
+
+models:
+  - name: mart_recruiting_funnel_daily
+    description: >
+      Daily recruiting funnel metrics by department and function.
+      Answers: how many applications, offers, and hires per day? What are
+      conversion rates and pipeline velocity?
+    meta:
+      owner: people-analytics-team
+      layer: marts
+      domain: recruiting
+      refresh_cadence: every_4h
+      severity: important
+      data_classification: internal
+    columns:
+      - name: event_date
+        description: "Calendar date of the activity."
+        tests: [not_null]
+      - name: department
+        description: "Hiring department."
+        tests: [not_null]
+      - name: function_name
+        description: "Business function."
+        tests: [not_null]
+      - name: applications_submitted
+        description: "Count of new applications submitted on this date."
+      - name: applications_hired
+        description: "Count of applications that resulted in a hire (by submit date)."
+      - name: applications_rejected
+        description: "Count of applications rejected (by submit date)."
+      - name: avg_days_in_funnel
+        description: "Average days from submit to close for applications submitted this day."
+      - name: offers_extended
+        description: "Count of offers extended on this date."
+      - name: offers_accepted
+        description: "Count of offers accepted on this date."
+      - name: offers_declined
+        description: "Count of offers declined on this date."
+      - name: avg_days_to_respond
+        description: "Average days from offer extension to response."
+      - name: hires
+        description: "Count of hires (offer acceptances) on this date."
+      - name: offer_acceptance_rate
+        description: "Offers accepted / offers extended (null if no offers)."
+      - name: funnel_conversion_rate
+        description: "Hires / applications submitted (null if no applications)."
+
+    tests:
+      - unique:
+          column_name: "event_date || '|' || department || '|' || function_name"
