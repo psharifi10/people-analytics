@@ -1,3 +1,4 @@
+name: people_analytics
 type: duckdb
 options:
   filename: people.duckdb
