@@ -1,0 +1,183 @@
+version: 2
+
+models:
+  - name: base_ats__jobs
+    description: >
+      Typed flatten of raw ATS job/requisition payloads. Deduped to one row per
+      requisition_id (latest by source_updated_at).
+    meta:
+      owner: people-analytics-team
+      layer: base
+      source_system: ats_ashby
+      refresh_cadence: every_4h
+      severity: standard
+      data_classification: internal
+    columns:
+      - name: requisition_id
+        description: "Ashby requisition/opening natural key."
+        tests: [unique, not_null]
+      - name: job_title
+        description: "Title of the role being hired for."
+      - name: job_level
+        description: "Seniority level code (IC1-IC5, M1-M4, etc.)."
+      - name: department
+        description: "Hiring department."
+      - name: function_name
+        description: "Business function (Engineering, Product, etc.)."
+      - name: opened_at
+        description: "Date the requisition was opened."
+        tests: [not_null]
+      - name: closed_at
+        description: "Date the requisition was closed (null if still open)."
+      - name: status
+        description: "Current status: open, filled, closed_unfilled."
+        tests:
+          - accepted_values:
+              values: ['open', 'filled', 'closed_unfilled']
+      - name: hired_worker_ids_json
+        description: "JSON array of HRIS worker_ids hired into this req."
+      - name: ingested_run_id
+        description: "UUID of the extractor run that landed this row."
+
+  - name: base_ats__candidates
+    description: >
+      Typed flatten of raw ATS candidate payloads. One row per candidate_id.
+    meta:
+      owner: people-analytics-team
+      layer: base
+      source_system: ats_ashby
+      refresh_cadence: every_4h
+      severity: standard
+      data_classification: confidential
+      pii: [name, email]
+    columns:
+      - name: candidate_id
+        description: "Ashby candidate natural key."
+        tests: [unique, not_null]
+      - name: first_name
+        description: "Candidate first name (PII)."
+      - name: last_name
+        description: "Candidate last name (PII)."
+      - name: email
+        description: "Candidate email address (PII)."
+      - name: linkedin_url
+        description: "LinkedIn profile URL."
+      - name: candidate_source
+        description: "How the candidate entered the funnel (inbound, referral, sourced, agency)."
+      - name: person_external_id
+        description: "Canonical person identifier. Links to dim_person when hired."
+      - name: ingested_run_id
+        description: "UUID of the extractor run that landed this row."
+
+  - name: base_ats__applications
+    description: >
+      Typed flatten of raw ATS application payloads. One row per application_id.
+      Stage history is in a separate model (base_ats__stage_events).
+    meta:
+      owner: people-analytics-team
+      layer: base
+      source_system: ats_ashby
+      refresh_cadence: every_4h
+      severity: standard
+      data_classification: internal
+    columns:
+      - name: application_id
+        description: "Ashby application natural key."
+        tests: [unique, not_null]
+      - name: candidate_id
+        description: "FK to candidate."
+        tests: [not_null]
+      - name: requisition_id
+        description: "FK to requisition."
+        tests: [not_null]
+      - name: submitted_at
+        description: "Timestamp when the application was submitted."
+        tests: [not_null]
+      - name: current_stage
+        description: "Latest funnel stage reached."
+      - name: status
+        description: "Application outcome: active, hired, rejected, withdrawn."
+        tests:
+          - accepted_values:
+              values: ['active', 'hired', 'rejected', 'withdrawn']
+      - name: is_winning
+        description: "True if this is the application that resulted in a hire for the req."
+      - name: application_source
+        description: "Channel that produced this application."
+      - name: ingested_run_id
+        description: "UUID of the extractor run that landed this row."
+
+  - name: base_ats__stage_events
+    description: >
+      Typed flatten of unfurled stage_history arrays. One row per stage
+      transition per application.
+    meta:
+      owner: people-analytics-team
+      layer: base
+      source_system: ats_ashby
+      refresh_cadence: every_4h
+      severity: standard
+      data_classification: internal
+    columns:
+      - name: stage_event_id
+        description: "Composite key: application_id|transitioned_at|to_stage."
+        tests: [unique, not_null]
+      - name: application_id
+        description: "FK to application."
+        tests: [not_null]
+      - name: candidate_id
+        description: "FK to candidate (denormalized for query convenience)."
+      - name: requisition_id
+        description: "FK to requisition (denormalized for query convenience)."
+      - name: from_stage
+        description: "Stage before transition (null for first entry)."
+      - name: to_stage
+        description: "Stage after transition."
+        tests: [not_null]
+      - name: transitioned_at
+        description: "Timestamp of the stage transition."
+        tests: [not_null]
+      - name: ingested_run_id
+        description: "UUID of the extractor run that landed this row."
+
+  - name: base_ats__offers
+    description: >
+      Typed flatten of raw ATS offer payloads. One row per offer_id.
+    meta:
+      owner: people-analytics-team
+      layer: base
+      source_system: ats_ashby
+      refresh_cadence: every_4h
+      severity: important
+      data_classification: confidential
+    columns:
+      - name: offer_id
+        description: "Ashby offer natural key."
+        tests: [unique, not_null]
+      - name: application_id
+        description: "FK to application that received this offer."
+        tests: [not_null]
+      - name: candidate_id
+        description: "FK to candidate."
+        tests: [not_null]
+      - name: requisition_id
+        description: "FK to requisition."
+        tests: [not_null]
+      - name: extended_at
+        description: "Timestamp the offer was extended."
+        tests: [not_null]
+      - name: responded_at
+        description: "Timestamp the candidate responded (null if pending)."
+      - name: status
+        description: "Offer outcome: accepted, declined, expired, rescinded, pending."
+        tests:
+          - accepted_values:
+              values: ['accepted', 'declined', 'expired', 'rescinded', 'pending']
+      - name: base_salary_amount
+        description: "Offered base salary (restricted, confidential)."
+      - name: base_salary_currency
+        description: "Currency code for the salary amount."
+      - name: accepted_person_external_id
+        description: "person_external_id of the hire (set on acceptance, links to HRIS)."
+      - name: ingested_run_id
+        description: "UUID of the extractor run that landed this row."

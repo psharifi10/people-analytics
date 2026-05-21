@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: stg_ats__jobs
+    description: "Staging pass-through for ATS jobs. Dedup handled in base layer."
+    meta:
+      owner: people-analytics-team
+      layer: staging
+      refresh_cadence: every_4h
+      severity: standard
+
+  - name: stg_ats__candidates
+    description: "Staging pass-through for ATS candidates."
+    meta:
+      owner: people-analytics-team
+      layer: staging
+      refresh_cadence: every_4h
+      severity: standard
+
+  - name: stg_ats__applications
+    description: "Staging pass-through for ATS applications."
+    meta:
+      owner: people-analytics-team
+      layer: staging
+      refresh_cadence: every_4h
+      severity: standard
+
+  - name: stg_ats__stage_events
+    description: "Staging pass-through for ATS stage transition events."
+    meta:
+      owner: people-analytics-team
+      layer: staging
+      refresh_cadence: every_4h
+      severity: standard
+
+  - name: stg_ats__offers
+    description: "Staging pass-through for ATS offers."
+    meta:
+      owner: people-analytics-team
+      layer: staging
+      refresh_cadence: every_4h
+      severity: important
