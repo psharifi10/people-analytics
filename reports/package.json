@@ -1,0 +1,21 @@
+{
+  "name": "people-analytics-dashboard",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "EVIDENCE_BUILD_DIR=./build/dashboard evidence build",
+    "build:strict": "EVIDENCE_BUILD_DIR=./build/dashboard evidence build:strict",
+    "dev": "evidence dev --open /",
+    "sources": "evidence sources",
+    "preview": "evidence preview"
+  },
+  "engines": {
+    "npm": ">=7.0.0",
+    "node": ">=18.0.0"
+  },
+  "type": "module",
+  "dependencies": {
+    "@evidence-dev/core-components": "^5.4.2",
+    "@evidence-dev/duckdb": "^2.0.1",
+    "@evidence-dev/evidence": "^40.1.8"
+  }
+}

@@ -1,0 +1,49 @@
+appearance:
+  default: system
+  switcher: true
+
+deployment:
+  basePath: /people-analytics/dashboard
+
+theme:
+  colorPalettes:
+    default:
+      light:
+        - "#236aa4"
+        - "#45a1bf"
+        - "#a5cdee"
+        - "#85c7c6"
+        - "#f4b548"
+        - "#8f3d56"
+        - "#46a485"
+      dark:
+        - "#236aa4"
+        - "#45a1bf"
+        - "#a5cdee"
+        - "#85c7c6"
+        - "#f4b548"
+        - "#8f3d56"
+        - "#46a485"
+  colors:
+    primary:
+      light: "#236aa4"
+      dark: "#45a1bf"
+    accent:
+      light: "#f4b548"
+      dark: "#f4b548"
+    base:
+      light: "#ffffff"
+      dark: "#09090b"
+    positive:
+      light: "#16a34a"
+      dark: "#4ade80"
+    negative:
+      light: "#dc2626"
+      dark: "#f87171"
+
+plugins:
+  components:
+    "@evidence-dev/core-components": {}
+
+  datasources:
+    "@evidence-dev/duckdb": {}
