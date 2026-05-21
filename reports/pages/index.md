@@ -9,7 +9,7 @@ select
     max(total_fte) as current_fte,
     sum(hires) as total_hires,
     sum(terminations) as total_terms
-from marts.mart_workforce_metrics_daily
+from people_analytics.mart_workforce_metrics_daily
 where date_day >= current_date - interval '365 days'
   and active_headcount > 0
 ```
@@ -20,7 +20,7 @@ select
     sum(hires) as total_hires,
     round(avg(avg_days_in_funnel), 1) as avg_days_to_hire,
     round(avg(offer_acceptance_rate) * 100, 1) as offer_accept_pct
-from marts.mart_recruiting_funnel_daily
+from people_analytics.mart_recruiting_funnel_daily
 where event_date >= current_date - interval '365 days'
   and applications_submitted > 0
 ```

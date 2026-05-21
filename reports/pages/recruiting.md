@@ -7,7 +7,7 @@ description: Application pipeline, stage conversion, and time-to-hire metrics
 select
     to_stage as stage,
     count(*) as candidates
-from core.fact_application_stage_history
+from people_analytics.fact_application_stage_history
 group by 1
 order by
     case to_stage
@@ -27,7 +27,7 @@ select
     sum(applications_submitted) as applications,
     sum(hires) as hires,
     sum(offers_extended) as offers
-from marts.mart_recruiting_funnel_daily
+from people_analytics.mart_recruiting_funnel_daily
 group by 1
 having sum(applications_submitted) > 0
 order by 1
@@ -40,7 +40,7 @@ select
     sum(hires) as hires,
     sum(offers_extended) as offers,
     round(avg(avg_days_in_funnel), 1) as avg_days
-from marts.mart_recruiting_funnel_daily
+from people_analytics.mart_recruiting_funnel_daily
 where applications_submitted > 0
 group by 1
 order by applications desc
@@ -51,7 +51,7 @@ select
     date_trunc('month', event_date) as month,
     round(sum(hires) * 100.0 / nullif(sum(applications_submitted), 0), 1) as hire_rate_pct,
     round(sum(offers_accepted) * 100.0 / nullif(sum(offers_extended), 0), 1) as offer_accept_pct
-from marts.mart_recruiting_funnel_daily
+from people_analytics.mart_recruiting_funnel_daily
 where applications_submitted > 0
 group by 1
 order by 1
@@ -61,7 +61,7 @@ order by 1
 select
     date_trunc('month', event_date) as month,
     round(avg(avg_days_in_funnel), 1) as avg_days_to_hire
-from marts.mart_recruiting_funnel_daily
+from people_analytics.mart_recruiting_funnel_daily
 where avg_days_in_funnel is not null
 group by 1
 order by 1
@@ -69,13 +69,13 @@ order by 1
 
 ```sql top_reqs
 select
-    r.title as requisition,
+    r.job_title as requisition,
     r.department,
     r.status,
     count(distinct a.application_id) as applications,
     count(distinct case when a.current_stage = 'hired' then a.application_id end) as hires
-from core.fact_application a
-join core.dim_job_requisition r on a.job_requisition_id = r.job_requisition_id
+from people_analytics.fact_application a
+join people_analytics.dim_job_requisition r on a.requisition_key = r.requisition_key
 group by 1, 2, 3
 order by applications desc
 limit 10

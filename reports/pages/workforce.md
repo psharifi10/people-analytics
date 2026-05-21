@@ -8,7 +8,7 @@ select
     date_day,
     active_headcount,
     total_fte
-from marts.mart_workforce_metrics_daily
+from people_analytics.mart_workforce_metrics_daily
 where active_headcount > 0
   and date_day = first_day_of_month
 order by date_day
@@ -20,7 +20,7 @@ select
     sum(hires) as hires,
     sum(terminations) as terminations,
     sum(net_headcount_change) as net_change
-from marts.mart_workforce_metrics_daily
+from people_analytics.mart_workforce_metrics_daily
 where active_headcount > 0
 group by 1
 order by 1
@@ -33,17 +33,17 @@ select
     max(contractor_headcount) as contractors,
     max(intern_headcount) as interns,
     max(contingent_headcount) as contingent
-from marts.mart_workforce_metrics_daily
-where date_day = (select max(date_day) from marts.mart_workforce_metrics_daily where active_headcount > 0)
+from people_analytics.mart_workforce_metrics_daily
+where date_day = (select max(date_day) from people_analytics.mart_workforce_metrics_daily where active_headcount > 0)
 ```
 
 ```sql dept_headcount
 select
-    e.department,
+    e.current_department as department,
     count(*) as headcount
-from core.dim_employee e
-join core.dim_employment_episode ep on e.employee_key = ep.employee_key
-where ep.is_active = true
+from people_analytics.dim_employee e
+join people_analytics.dim_employment_episode ep on e.employee_key = ep.employee_key
+where ep.is_active_episode = true
 group by 1
 order by headcount desc
 ```
@@ -53,7 +53,7 @@ select
     first_day_of_month as month,
     sum(promotions) as promotions,
     sum(transfers) as transfers
-from marts.mart_workforce_metrics_daily
+from people_analytics.mart_workforce_metrics_daily
 where active_headcount > 0
 group by 1
 having sum(promotions) + sum(transfers) > 0
@@ -66,7 +66,7 @@ select
     sum(hires) as total_hires,
     sum(terminations) as total_terminations,
     sum(promotions) as total_promotions
-from marts.mart_workforce_metrics_daily
+from people_analytics.mart_workforce_metrics_daily
 where active_headcount > 0
 ```
 
