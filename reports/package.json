@@ -18,7 +18,17 @@
     "@evidence-dev/duckdb": "^2.0.1",
     "@evidence-dev/evidence": "^40.1.8",
     "@sveltejs/vite-plugin-svelte": "^3.1.2",
+    "autoprefixer": "^10.5.0",
+    "debounce": "^1.2.1",
+    "git-remote-origin-url": "^4.0.0",
+    "postcss": "^8.5.15",
+    "postcss-load-config": "^4.0.2",
     "svelte": "^4.2.20",
+    "svelte-preprocess": "^5.1.4",
+    "svelte2tsx": "^0.7.55",
+    "tailwindcss": "^3.4.19",
+    "typescript": "5.4",
+    "unist-util-visit": "^4.1.2",
     "vite": "^5.4.21"
   }
 }
