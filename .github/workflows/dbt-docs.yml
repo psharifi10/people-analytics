@@ -30,6 +30,20 @@ jobs:
       - name: Install dependencies
         run: uv sync --no-dev
 
+      - name: Setup dbt profile
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml << 'EOF'
+          people_analytics:
+            target: dev
+            outputs:
+              dev:
+                type: duckdb
+                path: "{{ env_var('PA_DUCKDB_PATH', 'warehouse/people.duckdb') }}"
+                schema: main
+                threads: 4
+          EOF
+
       - name: Generate synthetic data
         run: uv run pa-generate-data --employees 1000 --years 3 --seed 42
 
@@ -49,7 +63,6 @@ jobs:
       - name: dbt build
         env:
           PA_DUCKDB_PATH: ${{ github.workspace }}/warehouse/people.duckdb
-          DBT_PROFILES_DIR: ${{ github.workspace }}/dbt_project
         run: |
           uv run dbt build \
             --project-dir dbt_project \
@@ -58,7 +71,6 @@ jobs:
       - name: dbt docs generate
         env:
           PA_DUCKDB_PATH: ${{ github.workspace }}/warehouse/people.duckdb
-          DBT_PROFILES_DIR: ${{ github.workspace }}/dbt_project
         run: |
           uv run dbt docs generate \
             --project-dir dbt_project \
