@@ -1,0 +1,103 @@
+metrics:
+  # ===========================================================================
+  # WORKFORCE METRICS (from headcount_snapshot + employment_events)
+  # ===========================================================================
+
+  # --- Stock metrics (point-in-time) ---
+
+  - name: active_headcount
+    type: simple
+    type_params:
+      measure: active_headcount
+    label: "Active Headcount"
+    description: >
+      Count of employees active on a given day. Sliceable by department,
+      function, job_level, worker_type, location_country.
+      Business definition: an employee is active if they have a hire_date on
+      or before the snapshot date and no termination_date before the snapshot date.
+
+  - name: total_fte
+    type: simple
+    type_params:
+      measure: total_fte
+    label: "Total FTE"
+    description: >
+      Sum of full-time-equivalent fractions across all active employees.
+      A full-time employee = 1.0; a 0.6 part-timer contributes 0.6.
+
+  # --- Flow metrics (period-based, filtered from total_events measure) ---
+
+  - name: hires
+    type: simple
+    type_params:
+      measure: hires
+    label: "Hires"
+    description: >
+      Count of hire and rehire events in a period.
+    filter:
+      - "event_type in ('hire', 'rehire')"
+
+  - name: terminations
+    type: simple
+    type_params:
+      measure: terminations
+    label: "Terminations"
+    description: >
+      Count of all termination events in a period, regardless of reason.
+    filter:
+      - "event_type = 'termination'"
+
+  - name: voluntary_terminations
+    type: simple
+    type_params:
+      measure: voluntary_terminations
+    label: "Voluntary Terminations"
+    description: >
+      Count of voluntary termination events only. Excludes involuntary
+      separations, end-of-contract, and other non-voluntary reasons.
+    filter:
+      - "event_type = 'termination' and termination_reason = 'voluntary'"
+
+  - name: voluntary_attrition_rate
+    type: derived
+    type_params:
+      expr: "voluntary_terminations * 1.0 / nullif(active_headcount, 0)"
+      metrics:
+        - name: voluntary_terminations
+        - name: active_headcount
+    label: "Voluntary Attrition Rate"
+    description: >
+      Voluntary terminations divided by active headcount for the period.
+      Standard people analytics attrition metric. Typically annualized by
+      multiplying by (365 / days_in_period) in the BI layer.
+
+  - name: total_attrition_rate
+    type: derived
+    type_params:
+      expr: "terminations * 1.0 / nullif(active_headcount, 0)"
+      metrics:
+        - name: terminations
+        - name: active_headcount
+    label: "Total Attrition Rate"
+    description: >
+      All terminations (voluntary + involuntary) divided by active headcount.
+
+  - name: promotions
+    type: simple
+    type_params:
+      measure: promotions
+    label: "Promotions"
+    description: >
+      Count of promotion events in a period.
+    filter:
+      - "event_type = 'promotion'"
+
+  - name: transfers
+    type: simple
+    type_params:
+      measure: transfers
+    label: "Transfers"
+    description: >
+      Count of transfer and lateral move events in a period.
+    filter:
+      - "event_type in ('transfer', 'lateral')"

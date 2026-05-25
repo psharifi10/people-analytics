@@ -1,0 +1,128 @@
+semantic_models:
+  # ---------------------------------------------------------------------------
+  # Headcount snapshot: periodic snapshot fact.
+  # Grain: one row per employee per day they were active.
+  # Powers: active_headcount, total_fte, headcount by any slice.
+  # ---------------------------------------------------------------------------
+  - name: headcount_snapshot
+    defaults:
+      agg_time_dimension: snapshot_date
+    description: >
+      Daily headcount snapshot. One row per active employee per day.
+      Use for stock metrics (how many?) sliced by org dimensions.
+    model: ref('fact_headcount_snapshot_daily')
+
+    entities:
+      - name: employee
+        type: foreign
+        expr: employee_key
+      - name: headcount_record
+        type: primary
+        expr: "concat(employee_key, '|', cast(snapshot_date as varchar))"
+
+    dimensions:
+      - name: snapshot_date
+        type: time
+        type_params:
+          time_granularity: day
+        expr: snapshot_date
+      - name: department
+        type: categorical
+        expr: department
+      - name: function_name
+        type: categorical
+        expr: function_name
+      - name: job_title
+        type: categorical
+        expr: job_title
+      - name: job_level
+        type: categorical
+        expr: job_level
+      - name: worker_type
+        type: categorical
+        expr: worker_type
+      - name: location_country
+        type: categorical
+        expr: location_country
+
+    measures:
+      - name: active_headcount
+        agg: count
+        expr: employee_key
+        description: "Count of active employees on a given day."
+      - name: total_fte
+        agg: sum
+        expr: fte
+        description: "Sum of FTE fractions across active employees."
+
+  # ---------------------------------------------------------------------------
+  # Employment events: transaction fact.
+  # Grain: one row per HR lifecycle event.
+  # Powers: hires, terminations, attrition rate, promotions, transfers.
+  # ---------------------------------------------------------------------------
+  - name: employment_events
+    defaults:
+      agg_time_dimension: effective_date
+    description: >
+      HR lifecycle events (hire, rehire, termination, promotion, transfer, lateral).
+      Use for flow metrics (how often did X happen?) sliced by org dimensions.
+    model: ref('fact_employment_event')
+
+    entities:
+      - name: employment_event
+        type: primary
+        expr: employment_event_key
+      - name: employee
+        type: foreign
+        expr: employee_key
+
+    dimensions:
+      - name: effective_date
+        type: time
+        type_params:
+          time_granularity: day
+        expr: effective_date
+      - name: event_type
+        type: categorical
+        expr: event_type
+      - name: department
+        type: categorical
+        expr: department
+      - name: function_name
+        type: categorical
+        expr: function_name
+      - name: job_title
+        type: categorical
+        expr: job_title
+      - name: job_level
+        type: categorical
+        expr: job_level
+      - name: termination_reason
+        type: categorical
+        expr: termination_reason
+
+    measures:
+      - name: total_events
+        agg: count
+        expr: employment_event_key
+        description: "Count of all employment events."
+      - name: hires
+        agg: count
+        expr: employment_event_key
+        description: "Count of hire and rehire events."
+      - name: terminations
+        agg: count
+        expr: employment_event_key
+        description: "Count of termination events."
+      - name: voluntary_terminations
+        agg: count
+        expr: employment_event_key
+        description: "Count of voluntary terminations only."
+      - name: promotions
+        agg: count
+        expr: employment_event_key
+        description: "Count of promotion events."
+      - name: transfers
+        agg: count
+        expr: employment_event_key
+        description: "Count of transfer and lateral move events."

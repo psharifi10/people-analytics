@@ -1,0 +1,160 @@
+semantic_models:
+  # ---------------------------------------------------------------------------
+  # Applications: transaction fact for recruiting funnel.
+  # Grain: one row per application.
+  # Powers: applications_submitted, funnel_conversion_rate, time_in_funnel.
+  # ---------------------------------------------------------------------------
+  - name: applications
+    defaults:
+      agg_time_dimension: submitted_date
+    description: >
+      ATS applications. One row per candidate application to a requisition.
+      Use for funnel volume, conversion, and time-in-funnel metrics.
+    model: ref('fact_application')
+
+    entities:
+      - name: application
+        type: primary
+        expr: application_key
+      - name: candidate
+        type: foreign
+        expr: candidate_key
+      - name: requisition
+        type: foreign
+        expr: requisition_key
+
+    dimensions:
+      - name: submitted_date
+        type: time
+        type_params:
+          time_granularity: day
+        expr: "cast(submitted_at as date)"
+      - name: current_stage
+        type: categorical
+        expr: current_stage
+      - name: status
+        type: categorical
+        expr: status
+
+    measures:
+      - name: applications_submitted
+        agg: count
+        expr: application_key
+        description: "Count of applications submitted."
+      - name: applications_hired
+        agg: count
+        expr: application_key
+        description: "Count of applications that resulted in a hire."
+      - name: applications_rejected
+        agg: count
+        expr: application_key
+        description: "Count of rejected applications."
+      - name: avg_days_in_funnel
+        agg: average
+        expr: days_in_funnel
+        description: "Average days from application submit to close."
+
+  # ---------------------------------------------------------------------------
+  # Offers: transaction fact for offer analytics.
+  # Grain: one row per offer extended.
+  # Powers: offer_accept_rate, time_to_respond, offers_extended.
+  # ---------------------------------------------------------------------------
+  - name: offers
+    defaults:
+      agg_time_dimension: extended_date
+    description: >
+      ATS offers. One row per offer extended to a candidate.
+      Use for offer acceptance, response time, and hire conversion metrics.
+    model: ref('fact_offer')
+
+    entities:
+      - name: offer
+        type: primary
+        expr: offer_key
+      - name: application
+        type: foreign
+        expr: application_key
+      - name: candidate
+        type: foreign
+        expr: candidate_key
+      - name: requisition
+        type: foreign
+        expr: requisition_key
+
+    dimensions:
+      - name: extended_date
+        type: time
+        type_params:
+          time_granularity: day
+        expr: "cast(extended_at as date)"
+      - name: offer_status
+        type: categorical
+        expr: status
+
+    measures:
+      - name: offers_extended
+        agg: count
+        expr: offer_key
+        description: "Count of offers extended."
+      - name: offers_accepted
+        agg: count
+        expr: offer_key
+        description: "Count of accepted offers."
+      - name: offers_declined
+        agg: count
+        expr: offer_key
+        description: "Count of declined offers."
+      - name: avg_days_to_respond
+        agg: average
+        expr: days_to_respond
+        description: "Average days from offer extended to candidate response."
+
+  # ---------------------------------------------------------------------------
+  # Stage history: transition-level fact for pipeline velocity.
+  # Grain: one row per application x stage transition.
+  # Powers: time_in_stage metrics.
+  # ---------------------------------------------------------------------------
+  - name: stage_transitions
+    defaults:
+      agg_time_dimension: transitioned_date
+    description: >
+      Stage transitions in the recruiting pipeline. One row per stage change.
+      Use for pipeline velocity and bottleneck analysis.
+    model: ref('fact_application_stage_history')
+
+    entities:
+      - name: stage_transition
+        type: primary
+        expr: stage_history_key
+      - name: application
+        type: foreign
+        expr: application_key
+      - name: candidate
+        type: foreign
+        expr: candidate_key
+      - name: requisition
+        type: foreign
+        expr: requisition_key
+
+    dimensions:
+      - name: transitioned_date
+        type: time
+        type_params:
+          time_granularity: day
+        expr: "cast(transitioned_at as date)"
+      - name: from_stage
+        type: categorical
+        expr: from_stage
+      - name: to_stage
+        type: categorical
+        expr: to_stage
+
+    measures:
+      - name: stage_transitions_count
+        agg: count
+        expr: stage_history_key
+        description: "Count of stage transitions."
+      - name: avg_hours_in_stage
+        agg: average
+        expr: hours_in_stage
+        description: "Average hours spent in a stage before transitioning."

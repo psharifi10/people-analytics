@@ -1,0 +1,99 @@
+metrics:
+  # ===========================================================================
+  # RECRUITING METRICS (from applications, offers, stage_transitions)
+  # ===========================================================================
+
+  # --- Volume metrics ---
+
+  - name: applications_submitted
+    type: simple
+    type_params:
+      measure: applications_submitted
+    label: "Applications Submitted"
+    description: >
+      Count of applications submitted in a period. One application =
+      one candidate applying to one requisition.
+
+  - name: applications_hired
+    type: simple
+    type_params:
+      measure: applications_hired
+    label: "Applications Hired"
+    description: >
+      Count of applications that resulted in a hire decision.
+    filter:
+      - "status = 'hired'"
+
+  - name: offers_extended
+    type: simple
+    type_params:
+      measure: offers_extended
+    label: "Offers Extended"
+    description: >
+      Count of offers extended to candidates in a period.
+
+  - name: offers_accepted
+    type: simple
+    type_params:
+      measure: offers_accepted
+    label: "Offers Accepted"
+    description: >
+      Count of offers accepted by candidates in a period.
+    filter:
+      - "status = 'accepted'"
+
+  # --- Rate metrics ---
+
+  - name: offer_acceptance_rate
+    type: derived
+    type_params:
+      expr: "offers_accepted * 1.0 / nullif(offers_extended, 0)"
+      metrics:
+        - name: offers_accepted
+        - name: offers_extended
+    label: "Offer Acceptance Rate"
+    description: >
+      Proportion of extended offers that were accepted. Target benchmark:
+      85-95% for most organizations.
+
+  - name: funnel_conversion_rate
+    type: derived
+    type_params:
+      expr: "applications_hired * 1.0 / nullif(applications_submitted, 0)"
+      metrics:
+        - name: applications_hired
+        - name: applications_submitted
+    label: "Funnel Conversion Rate"
+    description: >
+      End-to-end funnel conversion: applications that resulted in a hire
+      divided by total applications submitted. Typical range: 2-8%.
+
+  # --- Time metrics ---
+
+  - name: avg_days_in_funnel
+    type: simple
+    type_params:
+      measure: avg_days_in_funnel
+    label: "Avg Days in Funnel"
+    description: >
+      Average calendar days from application submission to funnel close
+      (hire, rejection, or withdrawal). Proxy for time-to-fill from
+      the candidate perspective.
+
+  - name: avg_days_to_respond
+    type: simple
+    type_params:
+      measure: avg_days_to_respond
+    label: "Avg Days to Offer Response"
+    description: >
+      Average calendar days from offer extension to candidate response.
+      Measures candidate decision velocity.
+
+  - name: avg_hours_in_stage
+    type: simple
+    type_params:
+      measure: avg_hours_in_stage
+    label: "Avg Hours in Stage"
+    description: >
+      Average hours spent in a pipeline stage before transitioning.
+      Use to identify bottleneck stages.
