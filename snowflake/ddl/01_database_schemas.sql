@@ -29,3 +29,15 @@ CREATE SCHEMA IF NOT EXISTS CORE_RESTRICTED
 
 CREATE SCHEMA IF NOT EXISTS MARTS_RESTRICTED
     COMMENT = 'Restricted reporting marts (e.g., compensation analytics).';
+
+CREATE SCHEMA IF NOT EXISTS AUDIT
+    COMMENT = 'Operational audit trail: erasure logs, access reviews, data quality incidents.';
+
+-- Erasure audit table (referenced by 04_erasure_procedure.sql).
+CREATE TABLE IF NOT EXISTS AUDIT.ERASURE_LOG (
+    erasure_id        NUMBER AUTOINCREMENT PRIMARY KEY,
+    ticket_id         VARCHAR NOT NULL,
+    person_external_id VARCHAR NOT NULL,
+    executed_at       TIMESTAMP_NTZ NOT NULL,
+    executed_by       VARCHAR NOT NULL
+);

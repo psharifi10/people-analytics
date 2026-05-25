@@ -38,7 +38,7 @@ bridged as (
         e.hire_date,
         row_number() over (
             partition by ao.offer_id
-            order by abs(datediff('day', e.hire_date, cast(ao.hired_at as date)))
+            order by abs(datediff('day', e.hire_date, cast(ao.hired_at as date))), e.worker_id
         ) as rn
     from accepted_offers ao
     left join employees e

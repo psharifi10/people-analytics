@@ -231,8 +231,11 @@ models:
         tests: [unique, not_null]
       - name: employee_key
         tests:
+          - not_null
           - relationships: { to: ref('dim_employee'), field: employee_key }
       - name: person_key
+        tests:
+          - not_null
       - name: event_id
       - name: worker_id
       - name: person_external_id

@@ -20,7 +20,9 @@ select
     current_job_title,
     current_job_level,
     current_manager_worker_id,
-    {{ surrogate_key(['current_manager_worker_id']) }} as current_manager_employee_key,
+    case when current_manager_worker_id is not null
+         then {{ surrogate_key(['current_manager_worker_id']) }}
+    end                                                      as current_manager_employee_key,
     current_worker_type,
     current_fte,
     current_location_city,

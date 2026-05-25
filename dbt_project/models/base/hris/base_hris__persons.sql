@@ -17,10 +17,10 @@ latest as (
 )
 select
     _source_record_id                                                       as person_external_id,
-    json_extract_string(raw_payload, '$.first_name')                        as first_name,
-    json_extract_string(raw_payload, '$.last_name')                         as last_name,
-    json_extract_string(raw_payload, '$.personal_email')                    as personal_email,
-    json_extract_string(raw_payload, '$.worker_ids')                        as worker_ids_json,
+    {{ json_field('raw_payload', 'first_name') }}                           as first_name,
+    {{ json_field('raw_payload', 'last_name') }}                            as last_name,
+    {{ json_field('raw_payload', 'personal_email') }}                       as personal_email,
+    {{ json_field('raw_payload', 'worker_ids') }}                           as worker_ids_json,
     _source_updated_at                                                      as source_updated_at,
     _ingested_at_utc                                                        as ingested_at_utc,
     _run_id                                                                 as ingested_run_id

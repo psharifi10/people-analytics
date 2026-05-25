@@ -13,6 +13,13 @@ models:
       refresh_cadence: daily_06_utc
       severity: standard
       data_classification: confidential
+    columns:
+      - name: worker_id
+        tests: [unique, not_null]
+      - name: person_external_id
+        tests: [not_null]
+      - name: hire_date
+        tests: [not_null]
 
   - name: stg_hris__profile_versions
     description: >
@@ -45,6 +52,9 @@ models:
       refresh_cadence: daily_06_utc
       severity: standard
       data_classification: confidential
+    columns:
+      - name: person_external_id
+        tests: [unique, not_null]
 
   - name: stg_hris__employment_events
     description: "Staged HR events. Pass-through over `base_hris__employment_events`."
@@ -54,3 +64,10 @@ models:
       refresh_cadence: daily_06_utc
       severity: important
       data_classification: internal
+    columns:
+      - name: event_id
+        tests: [unique, not_null]
+      - name: worker_id
+        tests: [not_null]
+      - name: effective_date
+        tests: [not_null]

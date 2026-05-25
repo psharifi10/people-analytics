@@ -8,6 +8,9 @@ models:
       layer: staging
       refresh_cadence: every_4h
       severity: standard
+    columns:
+      - name: requisition_id
+        tests: [unique, not_null]
 
   - name: stg_ats__candidates
     description: "Staging pass-through for ATS candidates."
@@ -16,6 +19,9 @@ models:
       layer: staging
       refresh_cadence: every_4h
       severity: standard
+    columns:
+      - name: candidate_id
+        tests: [unique, not_null]
 
   - name: stg_ats__applications
     description: "Staging pass-through for ATS applications."
@@ -24,6 +30,13 @@ models:
       layer: staging
       refresh_cadence: every_4h
       severity: standard
+    columns:
+      - name: application_id
+        tests: [unique, not_null]
+      - name: candidate_id
+        tests: [not_null]
+      - name: requisition_id
+        tests: [not_null]
 
   - name: stg_ats__stage_events
     description: "Staging pass-through for ATS stage transition events."
@@ -32,6 +45,11 @@ models:
       layer: staging
       refresh_cadence: every_4h
       severity: standard
+    columns:
+      - name: stage_event_id
+        tests: [unique, not_null]
+      - name: application_id
+        tests: [not_null]
 
   - name: stg_ats__offers
     description: "Staging pass-through for ATS offers."
@@ -40,3 +58,8 @@ models:
       layer: staging
       refresh_cadence: every_4h
       severity: important
+    columns:
+      - name: offer_id
+        tests: [unique, not_null]
+      - name: application_id
+        tests: [not_null]

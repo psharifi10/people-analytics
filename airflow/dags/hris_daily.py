@@ -3,7 +3,7 @@
 This is a documentation-grade artefact. It is NOT exercised by the local demo
 (no Airflow runtime is required). It demonstrates the production wiring:
 
-* Tasks: extract → land → dbt-build → dbt-test → freshness-check → notify
+* Tasks: extract → land → dbt-build → freshness-check
 * Idempotency: each task is safe to retry; landing is append-only with
   payload-hash dedupe; dbt models are deterministic given the same raw rows.
 * On-failure: PagerDuty for extract/land failures (data freshness); Slack-only

@@ -17,12 +17,12 @@ latest as (
 )
 select
     _source_record_id                                                          as stage_event_id,
-    json_extract_string(raw_payload, '$.application_id')                       as application_id,
-    json_extract_string(raw_payload, '$.candidate_id')                         as candidate_id,
-    json_extract_string(raw_payload, '$.requisition_id')                       as requisition_id,
-    json_extract_string(raw_payload, '$.from_stage')                           as from_stage,
-    json_extract_string(raw_payload, '$.to_stage')                             as to_stage,
-    cast(json_extract_string(raw_payload, '$.transitioned_at') as timestamp)   as transitioned_at,
+    {{ json_field('raw_payload', 'application_id') }}                          as application_id,
+    {{ json_field('raw_payload', 'candidate_id') }}                            as candidate_id,
+    {{ json_field('raw_payload', 'requisition_id') }}                          as requisition_id,
+    {{ json_field('raw_payload', 'from_stage') }}                              as from_stage,
+    {{ json_field('raw_payload', 'to_stage') }}                                as to_stage,
+    {{ json_field_cast('raw_payload', 'transitioned_at', 'timestamp') }}       as transitioned_at,
     _source_updated_at                                                         as source_updated_at,
     _ingested_at_utc                                                           as ingested_at_utc,
     _run_id                                                                    as ingested_run_id

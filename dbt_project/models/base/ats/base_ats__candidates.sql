@@ -17,12 +17,12 @@ latest as (
 )
 select
     _source_record_id                                                     as candidate_id,
-    json_extract_string(raw_payload, '$.first_name')                      as first_name,
-    json_extract_string(raw_payload, '$.last_name')                       as last_name,
-    json_extract_string(raw_payload, '$.email')                           as email,
-    json_extract_string(raw_payload, '$.linkedin_url')                    as linkedin_url,
-    json_extract_string(raw_payload, '$.source')                          as candidate_source,
-    json_extract_string(raw_payload, '$.person_external_id')              as person_external_id,
+    {{ json_field('raw_payload', 'first_name') }}                         as first_name,
+    {{ json_field('raw_payload', 'last_name') }}                          as last_name,
+    {{ json_field('raw_payload', 'email') }}                              as email,
+    {{ json_field('raw_payload', 'linkedin_url') }}                       as linkedin_url,
+    {{ json_field('raw_payload', 'source') }}                             as candidate_source,
+    {{ json_field('raw_payload', 'person_external_id') }}                 as person_external_id,
     _source_updated_at                                                    as source_updated_at,
     _ingested_at_utc                                                      as ingested_at_utc,
     _run_id                                                               as ingested_run_id

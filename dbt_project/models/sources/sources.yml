@@ -3,7 +3,7 @@ version: 2
 sources:
   - name: raw_hris
     description: >
-      Raw landing zone for the Workday-shaped HRIS extractor. Append-only , 
+      Raw landing zone for the Workday-shaped HRIS extractor. Append-only,
       every row preserves the source payload byte-for-byte plus audit
       metadata columns (`_ingested_at_utc`, `_run_id`, `_payload_hash`,
       etc.). Loaded by `extractors/hris_workday/cli.py`.

@@ -17,7 +17,9 @@ select
     job_title,
     job_level,
     manager_worker_id,
-    {{ surrogate_key(['manager_worker_id']) }}     as manager_employee_key,
+    case when manager_worker_id is not null
+         then {{ surrogate_key(['manager_worker_id']) }}
+    end                                                  as manager_employee_key,
     termination_reason,
     source_updated_at                              as recorded_at_utc,
     ingested_run_id
